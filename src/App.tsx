@@ -10,12 +10,15 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts'
-import { CheckCircle, Clock, XCircle, Loader2, RefreshCw, Code, X } from 'lucide-react'
+import { CheckCircle, Clock, XCircle, Loader2, RefreshCw, Code, X, HelpCircle } from 'lucide-react'
 import type { BenchmarkResult } from './benchmarks/simpleBench'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog'
+import { Slider } from '@/components/ui/slider'
+import { BENCHMARK_CONFIG } from './benchmarks/crdtBenchmarks'
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 // Define the benchmark operations that will be run
 const BENCHMARK_OPERATIONS = [
@@ -33,6 +36,9 @@ const LIBRARY_COLORS: Record<string, string> = {
   'Loro': '#999999'
 }
 
+// Operation size options
+const OP_SIZE_OPTIONS = [32, 128, 512, 2048, 16384, 65536];
+
 function App() {
   const [results, setResults] = useState<BenchmarkResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -42,6 +48,7 @@ function App() {
   const [logs, setLogs] = useState<string[]>([])
   const [codeDialogOpen, setCodeDialogOpen] = useState(false)
   const [selectedCode, setSelectedCode] = useState<{ title: string, code: string }>({ title: '', code: '' })
+  const [opSize, setOpSize] = useState<number>(BENCHMARK_CONFIG.OP_SIZE)
   const logsEndRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll logs to bottom when new logs are added
@@ -134,10 +141,13 @@ function App() {
     setLoading(true);
     setResults([]);
     setCompletedTests(new Set());
-    setStatusMessage("Starting benchmarks...");
+    setStatusMessage(`Starting benchmarks with ${opSize} operations per iteration...`);
     setLogs([]);
-    addLog("Starting benchmark process");
-    worker.postMessage('start');
+    addLog(`Starting benchmark process with operation size: ${opSize}`);
+    worker.postMessage({
+      type: 'start',
+      opSize
+    });
   }
 
   const getChartData = () => {
@@ -189,15 +199,75 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen app-background py-12">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h1 className="text-5xl md:text-6xl font-bold mb-4 text-white">
+    <div className="min-h-screen app-background py-6 sm:py-12">
+      <div className="container mx-auto px-2 sm:px-4">
+        <div className="text-center mb-6 sm:mb-12">
+          <h1 className="text-4xl md:text-6xl font-bold mb-3 sm:mb-4 text-white">
             CRDT Library Benchmarks
           </h1>
-          <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-8 opacity-90">
+          <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto mb-6 sm:mb-8 opacity-90">
             Compare performance between Yjs, Automerge, and Loro CRDT implementations
           </p>
+
+          {/* Operation Size Selector */}
+          <Card className="max-w-xl p-2 mx-auto mb-6 sm:mb-8 card-gradient">
+            <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-6">
+              <CardTitle className="flex items-center text-gray-100">
+                <span>Operations Size</span>
+                <TooltipProvider delayDuration={100}>
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" className="h-6 w-6 p-0 ml-2 rounded-full">
+                        <HelpCircle className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-xs p-2">
+                      <p>
+                        Controls how many operations each CRDT library performs in a single benchmark iteration.
+                        Higher values will test performance with larger data structures.
+                      </p>
+                    </TooltipContent>
+                  </UITooltip>
+                </TooltipProvider>
+              </CardTitle>
+              <CardDescription className="text-gray-400">
+                Current: {opSize} operations
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-3 sm:px-6 pb-3 sm:pb-4">
+              <div className="pb-3 pt-1 sm:pt-2">
+                <Slider
+                  defaultValue={[opSize]}
+                  min={0}
+                  max={OP_SIZE_OPTIONS.length - 1}
+                  step={1}
+                  onValueChange={(val: number[]) => {
+                    setOpSize(OP_SIZE_OPTIONS[val[0]]);
+                  }}
+                  disabled={loading}
+                  className='mb-3'
+                />
+                <div className="relative h-6 mt-1">
+                  {OP_SIZE_OPTIONS.map((size, i) => {
+                    // Calculate percentage position
+                    const position = i / (OP_SIZE_OPTIONS.length - 1) * 100;
+                    return (
+                      <div
+                        key={i}
+                        className="absolute text-xs text-gray-400 transform -translate-x-1/2"
+                        style={{
+                          left: `${position}%`,
+                          width: 'max-content'
+                        }}
+                      >
+                        {size}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           <Button
             onClick={runBenchmarks}
@@ -232,9 +302,9 @@ function App() {
         )}
 
         {/* Test Status Indicators */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold text-center mb-8 text-white">Benchmark Progress</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-semibold text-center mb-4 sm:mb-8 text-white">Benchmark Progress</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-6">
             {BENCHMARK_OPERATIONS.map((operation) => (
               <Card
                 key={operation}
@@ -270,42 +340,24 @@ function App() {
           </div>
         </div>
 
-        {/* Logs Panel */}
-        <div className="mb-12">
-          <Card className="card-gradient border-0">
-            <CardHeader className="px-6 pb-2">
-              <CardTitle className="text-xl text-white flex items-center">
-                <span className="flex-1">Benchmark Logs</span>
-                {loading && <Loader2 className="h-4 w-4 animate-spin text-blue-300" />}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4">
-              <div className="bg-black/80 rounded-lg p-4 h-40 overflow-y-auto font-mono text-sm text-gray-300">
-                {logs.length === 0 ? (
-                  <div className="text-gray-500 italic">No logs yet. Run benchmarks to see output.</div>
-                ) : (
-                  logs.map((log, i) => (
-                    <div key={i} className="leading-relaxed">{log}</div>
-                  ))
-                )}
-                <div ref={logsEndRef} />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Results Section - Show when we have results */}
         {results.length > 0 && (
-          <div className="space-y-12">
-            <Card className="card-gradient overflow-hidden p-6 border-0">
-              <CardHeader className="px-0 pb-6">
-                <CardTitle className="text-center text-2xl text-white">
-                  Operations per Second - All Libraries
+          <div className="space-y-6 sm:space-y-12">
+            <Card className="card-gradient overflow-hidden p-3 sm:p-6 border-0">
+              <CardHeader className="px-0 pb-2 sm:pb-6">
+                <CardTitle className="text-center text-xl sm:text-2xl text-white">
+                  Iterations per Second - All Libraries
                 </CardTitle>
+                <CardDescription className="text-center text-gray-400">
+                  Each iteration performs {opSize} operations
+                </CardDescription>
               </CardHeader>
-              <div className="h-[400px] w-full">
+              <div className="h-[300px] sm:h-[400px] w-full">
                 <ResponsiveContainer>
-                  <BarChart data={getChartData()}>
+                  <BarChart
+                    data={getChartData()}
+                    margin={{ left: 0, right: 10, top: 10, bottom: 0 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                     <XAxis
                       dataKey="name"
@@ -315,7 +367,8 @@ function App() {
                     <YAxis
                       stroke="#ccc"
                       tick={{ fill: '#ccc', fontSize: 12 }}
-                      label={{ value: 'Operations per second (higher is better)', angle: -90, position: 'insideLeft', fill: '#ccc', fontSize: 12 }}
+                      label={{ value: 'Iterations/sec (higher is better)', angle: -90, position: 'insideLeft', fill: '#ccc', fontSize: 11, dx: 12, dy: 50 }}
+                      width={80}
                     />
                     <Tooltip
                       contentStyle={{
@@ -335,17 +388,23 @@ function App() {
               </div>
             </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
               {Array.from(new Set(results.map(r => r.name))).map(operation => (
-                <Card key={operation} className="card-gradient overflow-hidden p-6 border-0">
-                  <CardHeader className="px-0 pb-6">
-                    <CardTitle className="text-center text-xl text-white">
+                <Card key={operation} className="card-gradient overflow-hidden p-3 sm:p-6 border-0">
+                  <CardHeader className="px-0 pb-2 sm:pb-6">
+                    <CardTitle className="text-center text-lg sm:text-xl text-white">
                       {operation}
                     </CardTitle>
+                    <CardDescription className="text-center text-gray-400">
+                      Each iteration performs {opSize} operations
+                    </CardDescription>
                   </CardHeader>
-                  <div className="h-[300px] w-full">
+                  <div className="h-[250px] sm:h-[300px] w-full">
                     <ResponsiveContainer>
-                      <BarChart data={getLibraryData(operation)}>
+                      <BarChart
+                        data={getLibraryData(operation)}
+                        margin={{ left: 0, right: 10, top: 10, bottom: 0 }}
+                      >
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                         <XAxis
                           dataKey="library"
@@ -355,7 +414,8 @@ function App() {
                         <YAxis
                           stroke="#ccc"
                           tick={{ fill: '#ccc', fontSize: 12 }}
-                          label={{ value: 'Operations per second (higher is better)', angle: -90, position: 'insideLeft', fill: '#ccc', fontSize: 12 }}
+                          label={{ value: 'Iterations/sec (higher is better)', angle: -90, position: 'insideLeft', fill: '#ccc', fontSize: 11, dx: 12, dy: 50 }}
+                          width={80}
                         />
                         <Tooltip
                           contentStyle={{
@@ -366,7 +426,7 @@ function App() {
                             color: '#fff'
                           }}
                           formatter={(value) => {
-                            return [`${value} ops/sec`, 'Operations per Second'];
+                            return [`${value} iter/sec`, 'Iterations per Second'];
                           }}
                         />
                         <Bar
@@ -387,15 +447,15 @@ function App() {
                   </div>
 
                   {/* Library code buttons */}
-                  <CardFooter className="flex flex-wrap gap-2 mt-4 justify-center">
+                  <CardFooter className="flex flex-wrap gap-2 mt-2 sm:mt-4 justify-center">
                     {getLibraryData(operation).map(entry => (
                       <Button
                         key={entry.library}
                         variant="outline"
-                        className="flex items-center gap-2 border-gray-600 hover:bg-black/40"
+                        className="flex items-center gap-1 sm:gap-2 border-gray-600 hover:bg-black/40 text-xs sm:text-sm px-2 sm:px-3"
                         onClick={() => showCode(`${entry.library} - ${operation}`, entry.code)}
                       >
-                        <Code className="h-4 w-4" />
+                        <Code className="h-3 w-3 sm:h-4 sm:w-4" />
                         <span>View {entry.library} Code</span>
                       </Button>
                     ))}
