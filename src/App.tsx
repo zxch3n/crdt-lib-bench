@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   BarChart,
   Bar,
@@ -10,11 +10,12 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts'
-import { CheckCircle } from 'lucide-react'
-import type { BenchmarkResult } from './benchmarks/crdtBenchmarks'
+import { CheckCircle, Clock, XCircle, Loader2, RefreshCw, Code, X } from 'lucide-react'
+import type { BenchmarkResult } from './benchmarks/simpleBench'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog'
 
 // Define the benchmark operations that will be run
 const BENCHMARK_OPERATIONS = [
@@ -27,9 +28,9 @@ const BENCHMARK_OPERATIONS = [
 
 // Colors for different libraries
 const LIBRARY_COLORS: Record<string, string> = {
-  'Yjs': '#3f51b5',
-  'Automerge': '#7986cb',
-  'Loro': '#e91e63'
+  'Yjs': '#333333',
+  'Automerge': '#666666',
+  'Loro': '#999999'
 }
 
 function App() {
@@ -37,6 +38,24 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [worker, setWorker] = useState<Worker | null>(null)
   const [completedTests, setCompletedTests] = useState<Set<string>>(new Set())
+  const [statusMessage, setStatusMessage] = useState<string>("")
+  const [logs, setLogs] = useState<string[]>([])
+  const [codeDialogOpen, setCodeDialogOpen] = useState(false)
+  const [selectedCode, setSelectedCode] = useState<{ title: string, code: string }>({ title: '', code: '' })
+  const logsEndRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll logs to bottom when new logs are added
+  useEffect(() => {
+    if (logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [logs]);
+
+  // Add a log entry
+  const addLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setLogs(prev => [...prev, `[${timestamp}] ${message}`]);
+  };
 
   useEffect(() => {
     const newWorker = new Worker(new URL('./benchmarks/benchmarkWorker.ts', import.meta.url), {
@@ -44,25 +63,61 @@ function App() {
     })
 
     newWorker.onmessage = (e) => {
-      const { type, results: newResults, error } = e.data
+      const { type, results: newResults, error, message, stack } = e.data
 
       switch (type) {
+        case 'status': {
+          setStatusMessage(message || "");
+          addLog(message);
+          break;
+        }
         case 'progress': {
-          setResults(newResults)
+          if (newResults && newResults.length > 0) {
+            console.log("Progress update with results:", newResults);
+            setResults(newResults);
+            addLog(`Received ${newResults.length} benchmark results`);
+          }
+
+          if (message) {
+            setStatusMessage(message);
+            addLog(message);
+          }
+
           // Update completed tests
-          const completedOps = new Set(newResults.map((r: BenchmarkResult) => r.name))
-          setCompletedTests(completedOps as Set<string>)
-          break
+          if (newResults) {
+            const completedOps = new Set<string>();
+            newResults.forEach((r: BenchmarkResult) => {
+              if (typeof r.name === 'string') {
+                completedOps.add(r.name);
+              }
+            });
+            setCompletedTests(completedOps);
+          }
+          break;
         }
         case 'complete': {
-          setResults(newResults)
-          setLoading(false)
-          break
+          if (newResults && newResults.length > 0) {
+            console.log("Complete with results:", newResults);
+            setResults(newResults);
+            addLog(`Final benchmark results: ${newResults.length} total results`);
+          } else {
+            addLog("Received complete message but no results were present");
+          }
+
+          setLoading(false);
+          setStatusMessage(message || "All benchmarks completed successfully");
+          addLog(message || "Benchmarks completed");
+          break;
         }
         case 'error': {
-          console.error('Benchmark error:', error)
-          setLoading(false)
-          break
+          console.error('Benchmark error:', error, stack);
+          setLoading(false);
+          setStatusMessage(`Error: ${error}`);
+          addLog(`Error: ${error}`);
+          if (stack) {
+            addLog(`Stack: ${stack}`);
+          }
+          break;
         }
       }
     }
@@ -75,25 +130,41 @@ function App() {
   }, [])
 
   const runBenchmarks = () => {
-    if (!worker) return
-    setLoading(true)
-    setResults([])
-    setCompletedTests(new Set())
-    worker.postMessage('start')
+    if (!worker) return;
+    setLoading(true);
+    setResults([]);
+    setCompletedTests(new Set());
+    setStatusMessage("Starting benchmarks...");
+    setLogs([]);
+    addLog("Starting benchmark process");
+    worker.postMessage('start');
   }
 
   const getChartData = () => {
-    const operations = Array.from(new Set(results.map(r => r.name)))
+    console.log("Getting chart data from results:", results);
+    if (results.length === 0) {
+      console.warn("No results available to create chart data");
+      return [];
+    }
+
+    const operations = Array.from(new Set(results.map(r => r.name)));
+    console.log("Operations for chart:", operations);
+
     return operations.map(operation => {
-      const operationResults = results.filter(r => r.name === operation)
-      return {
+      const operationResults = results.filter(r => r.name === operation);
+      console.log(`Data for ${operation}:`, operationResults);
+
+      const data = {
         name: operation,
         ...operationResults.reduce((acc, curr) => ({
           ...acc,
           [curr.library]: Math.round(curr.opsPerSecond)
         }), {})
-      }
-    })
+      };
+
+      console.log(`Chart data for ${operation}:`, data);
+      return data;
+    });
   }
 
   // Function to create the per-operation data for individual charts
@@ -102,18 +173,29 @@ function App() {
       .filter(r => r.name === operation)
       .map(r => ({
         library: r.library,
-        opsPerSecond: Math.round(r.opsPerSecond)
-      }))
+        opsPerSecond: Math.round(r.opsPerSecond),
+        code: r.code,
+        executionTime: Math.round(r.executionTime)
+      }));
   }
 
+  // Show code dialog
+  const showCode = (title: string, code: string) => {
+    setSelectedCode({
+      title,
+      code
+    });
+    setCodeDialogOpen(true);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-950 text-white py-12">
+    <div className="min-h-screen app-background py-12">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500">
+          <h1 className="text-5xl md:text-6xl font-bold mb-4 text-white">
             CRDT Library Benchmarks
           </h1>
-          <p className="text-lg text-slate-300 max-w-2xl mx-auto mb-8">
+          <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-8 opacity-90">
             Compare performance between Yjs, Automerge, and Loro CRDT implementations
           </p>
 
@@ -121,50 +203,65 @@ function App() {
             onClick={runBenchmarks}
             disabled={loading}
             size="lg"
-            className="w-48"
+            className="w-56 h-14 bg-black hover:bg-gray-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl border border-gray-700"
           >
             {loading ? (
               <>
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Running...
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Running Benchmarks...
               </>
             ) : (
-              'Run Benchmarks'
+              <>
+                <RefreshCw className="mr-2 h-5 w-5" />
+                Run Benchmarks
+              </>
             )}
           </Button>
         </div>
 
+        {/* Status Message */}
+        {statusMessage && (
+          <div className="mb-8 text-center">
+            <Badge
+              variant="outline"
+              className={`text-xl py-2 px-4 ${loading ? "bg-black/50 text-white border-gray-500" : "bg-black/50 text-white border-gray-400"}`}
+            >
+              {statusMessage}
+            </Badge>
+          </div>
+        )}
+
         {/* Test Status Indicators */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-semibold text-center mb-6">Benchmark Progress</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold text-center mb-8 text-white">Benchmark Progress</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {BENCHMARK_OPERATIONS.map((operation) => (
               <Card
                 key={operation}
-                className={`transition-all duration-300 ${completedTests.has(operation)
-                  ? 'bg-gradient-to-r from-green-900 to-emerald-800 border-green-700'
-                  : loading && !completedTests.has(operation)
-                    ? 'bg-slate-800 border-slate-700 animate-pulse'
-                    : 'bg-slate-800 border-slate-700'
-                  }`}
+                className={
+                  completedTests.has(operation)
+                    ? "card-completed"
+                    : loading && !completedTests.has(operation)
+                      ? "card-pending"
+                      : "card-gradient"
+                }
               >
-                <CardContent className="p-4 flex items-center justify-between">
-                  <span className="font-medium">{operation}</span>
+                <CardContent className="p-5 flex items-center justify-between">
+                  <span className="font-medium text-white">{operation}</span>
                   {completedTests.has(operation) ? (
-                    <Badge variant="success" className="flex items-center">
-                      <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                    <Badge variant="outline" className="bg-black/50 text-white border-gray-400 flex items-center gap-1 px-3 py-1">
+                      <CheckCircle className="h-3.5 w-3.5" />
                       <span>Complete</span>
                     </Badge>
                   ) : loading ? (
-                    <Badge variant="ghost" className="bg-opacity-50">
-                      Pending
+                    <Badge variant="outline" className="bg-black/50 text-white border-gray-500 flex items-center gap-1 px-3 py-1">
+                      <Clock className="h-3.5 w-3.5 animate-pulse" />
+                      <span>Pending</span>
                     </Badge>
                   ) : (
-                    <Badge variant="ghost">
-                      Not Started
+                    <Badge variant="outline" className="bg-black/50 text-gray-300 border-gray-700 flex items-center gap-1 px-3 py-1">
+                      <XCircle className="h-3.5 w-3.5" />
+                      <span>Not Started</span>
                     </Badge>
                   )}
                 </CardContent>
@@ -173,11 +270,36 @@ function App() {
           </div>
         </div>
 
+        {/* Logs Panel */}
+        <div className="mb-12">
+          <Card className="card-gradient border-0">
+            <CardHeader className="px-6 pb-2">
+              <CardTitle className="text-xl text-white flex items-center">
+                <span className="flex-1">Benchmark Logs</span>
+                {loading && <Loader2 className="h-4 w-4 animate-spin text-blue-300" />}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="bg-black/80 rounded-lg p-4 h-40 overflow-y-auto font-mono text-sm text-gray-300">
+                {logs.length === 0 ? (
+                  <div className="text-gray-500 italic">No logs yet. Run benchmarks to see output.</div>
+                ) : (
+                  logs.map((log, i) => (
+                    <div key={i} className="leading-relaxed">{log}</div>
+                  ))
+                )}
+                <div ref={logsEndRef} />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Results Section - Show when we have results */}
         {results.length > 0 && (
           <div className="space-y-12">
-            <Card className="bg-slate-900 border-slate-800 p-6 shadow-lg">
+            <Card className="card-gradient overflow-hidden p-6 border-0">
               <CardHeader className="px-0 pb-6">
-                <CardTitle className="text-center text-2xl">
+                <CardTitle className="text-center text-2xl text-white">
                   Operations per Second - All Libraries
                 </CardTitle>
               </CardHeader>
@@ -185,20 +307,29 @@ function App() {
                 <ResponsiveContainer>
                   <BarChart data={getChartData()}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                    <XAxis dataKey="name" stroke="#fff" />
-                    <YAxis stroke="#fff" />
+                    <XAxis
+                      dataKey="name"
+                      stroke="#ccc"
+                      tick={{ fill: '#ccc', fontSize: 12 }}
+                    />
+                    <YAxis
+                      stroke="#ccc"
+                      tick={{ fill: '#ccc', fontSize: 12 }}
+                      label={{ value: 'Operations per second (higher is better)', angle: -90, position: 'insideLeft', fill: '#ccc', fontSize: 12 }}
+                    />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                        border: '1px solid #334155',
+                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                        border: '1px solid #444',
                         borderRadius: '8px',
+                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
                         color: '#fff'
                       }}
                     />
                     <Legend />
-                    <Bar dataKey="Yjs" fill={LIBRARY_COLORS.Yjs} radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Automerge" fill={LIBRARY_COLORS.Automerge} radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Loro" fill={LIBRARY_COLORS.Loro} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Yjs" fill={LIBRARY_COLORS.Yjs} radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="Automerge" fill={LIBRARY_COLORS.Automerge} radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="Loro" fill={LIBRARY_COLORS.Loro} radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -206,9 +337,9 @@ function App() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {Array.from(new Set(results.map(r => r.name))).map(operation => (
-                <Card key={operation} className="bg-slate-900 border-slate-800 p-6 shadow-lg">
+                <Card key={operation} className="card-gradient overflow-hidden p-6 border-0">
                   <CardHeader className="px-0 pb-6">
-                    <CardTitle className="text-center text-xl">
+                    <CardTitle className="text-center text-xl text-white">
                       {operation}
                     </CardTitle>
                   </CardHeader>
@@ -216,21 +347,33 @@ function App() {
                     <ResponsiveContainer>
                       <BarChart data={getLibraryData(operation)}>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                        <XAxis dataKey="library" stroke="#fff" />
-                        <YAxis stroke="#fff" />
+                        <XAxis
+                          dataKey="library"
+                          stroke="#ccc"
+                          tick={{ fill: '#ccc', fontSize: 12 }}
+                        />
+                        <YAxis
+                          stroke="#ccc"
+                          tick={{ fill: '#ccc', fontSize: 12 }}
+                          label={{ value: 'Operations per second (higher is better)', angle: -90, position: 'insideLeft', fill: '#ccc', fontSize: 12 }}
+                        />
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                            border: '1px solid #334155',
+                            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                            border: '1px solid #444',
                             borderRadius: '8px',
+                            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
                             color: '#fff'
+                          }}
+                          formatter={(value) => {
+                            return [`${value} ops/sec`, 'Operations per Second'];
                           }}
                         />
                         <Bar
                           dataKey="opsPerSecond"
-                          radius={[4, 4, 0, 0]}
+                          radius={[6, 6, 0, 0]}
                           name="Operations per Second"
-                          fill="#3f51b5"
+                          fill="#333333"
                         >
                           {getLibraryData(operation).map((entry, index) => (
                             <Cell
@@ -242,11 +385,47 @@ function App() {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
+
+                  {/* Library code buttons */}
+                  <CardFooter className="flex flex-wrap gap-2 mt-4 justify-center">
+                    {getLibraryData(operation).map(entry => (
+                      <Button
+                        key={entry.library}
+                        variant="outline"
+                        className="flex items-center gap-2 border-gray-600 hover:bg-black/40"
+                        onClick={() => showCode(`${entry.library} - ${operation}`, entry.code)}
+                      >
+                        <Code className="h-4 w-4" />
+                        <span>View {entry.library} Code</span>
+                      </Button>
+                    ))}
+                  </CardFooter>
                 </Card>
               ))}
             </div>
           </div>
         )}
+
+        {/* Code Viewing Dialog */}
+        <Dialog open={codeDialogOpen} onOpenChange={setCodeDialogOpen}>
+          <DialogContent className="max-w-3xl bg-black border border-gray-800 text-white">
+            <DialogHeader>
+              <DialogTitle className="flex items-center justify-between">
+                <span>{selectedCode.title}</span>
+                <DialogClose asChild>
+                  <Button variant="ghost" className="h-8 w-8 p-0 rounded-full">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </DialogClose>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="bg-gray-900 p-4 rounded-md">
+              <pre className="font-mono text-sm overflow-x-auto">
+                <code className="text-gray-300 whitespace-pre">{selectedCode.code}</code>
+              </pre>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )
