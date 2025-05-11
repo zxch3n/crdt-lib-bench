@@ -19,6 +19,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@
 import { Slider } from '@/components/ui/slider'
 import { BENCHMARK_CONFIG } from './benchmarks/crdtBenchmarks'
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 
 // Define the benchmark operations that will be run
 const BENCHMARK_OPERATIONS = [
@@ -49,6 +51,7 @@ function App() {
   const [codeDialogOpen, setCodeDialogOpen] = useState(false)
   const [selectedCode, setSelectedCode] = useState<{ title: string, code: string }>({ title: '', code: '' })
   const [opSize, setOpSize] = useState<number>(BENCHMARK_CONFIG.OP_SIZE)
+  const [showDuration, setShowDuration] = useState<boolean>(false)
   const logsEndRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll logs to bottom when new logs are added
@@ -166,10 +169,21 @@ function App() {
 
       const data = {
         name: operation,
-        ...operationResults.reduce((acc, curr) => ({
-          ...acc,
-          [curr.library]: Math.round(curr.opsPerSecond)
-        }), {})
+        ...operationResults.reduce((acc, curr) => {
+          if (showDuration) {
+            // When showing duration, calculate ms per operation
+            const msPerOperation = (curr.executionTime / opSize);
+            return {
+              ...acc,
+              [curr.library]: Math.round(msPerOperation * 1000) / 1000 // Round to 3 decimal places
+            };
+          } else {
+            return {
+              ...acc,
+              [curr.library]: Math.round(curr.opsPerSecond)
+            };
+          }
+        }, {})
       };
 
       console.log(`Chart data for ${operation}:`, data);
@@ -181,12 +195,25 @@ function App() {
   const getLibraryData = (operation: string) => {
     return results
       .filter(r => r.name === operation)
-      .map(r => ({
-        library: r.library,
-        opsPerSecond: Math.round(r.opsPerSecond),
-        code: r.code,
-        executionTime: Math.round(r.executionTime)
-      }));
+      .map(r => {
+        if (showDuration) {
+          // Calculate ms per operation
+          const msPerOperation = (r.executionTime / opSize);
+          return {
+            library: r.library,
+            value: Math.round(msPerOperation * 1000) / 1000, // Round to 3 decimal places
+            code: r.code,
+            executionTime: Math.round(r.executionTime)
+          };
+        } else {
+          return {
+            library: r.library,
+            value: Math.round(r.opsPerSecond),
+            code: r.code,
+            executionTime: Math.round(r.executionTime)
+          };
+        }
+      });
   }
 
   // Show code dialog
@@ -196,6 +223,24 @@ function App() {
       code
     });
     setCodeDialogOpen(true);
+  };
+
+  // Get Y-axis label based on display mode
+  const getYAxisLabel = () => {
+    if (showDuration) {
+      return 'MS per operation (lower is better)';
+    } else {
+      return 'Iterations/sec (higher is better)';
+    }
+  };
+
+  // Get tooltip label based on display mode
+  const getTooltipFormatter = (value: number | string) => {
+    if (showDuration) {
+      return [`${value} ms/op`, 'MS per operation'];
+    } else {
+      return [`${value} iter/sec`, 'Iterations per Second'];
+    }
   };
 
   return (
@@ -343,10 +388,25 @@ function App() {
         {/* Results Section - Show when we have results */}
         {results.length > 0 && (
           <div className="space-y-6 sm:space-y-12">
+            {/* Display Mode Toggle */}
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <Label htmlFor="metric-toggle" className={`text-sm ${!showDuration ? 'text-white font-medium' : 'text-gray-400'}`}>
+                Iterations per Second
+              </Label>
+              <Switch
+                id="metric-toggle"
+                checked={showDuration}
+                onCheckedChange={setShowDuration}
+              />
+              <Label htmlFor="metric-toggle" className={`text-sm ${showDuration ? 'text-white font-medium' : 'text-gray-400'}`}>
+                MS per Operation
+              </Label>
+            </div>
+
             <Card className="card-gradient overflow-hidden p-3 sm:p-6 border-0">
               <CardHeader className="px-0 pb-2 sm:pb-6">
                 <CardTitle className="text-center text-xl sm:text-2xl text-white">
-                  Iterations per Second - All Libraries
+                  {showDuration ? 'MS per Operation - All Libraries' : 'Iterations per Second - All Libraries'}
                 </CardTitle>
                 <CardDescription className="text-center text-gray-400">
                   Each iteration performs {opSize} operations
@@ -367,7 +427,7 @@ function App() {
                     <YAxis
                       stroke="#ccc"
                       tick={{ fill: '#ccc', fontSize: 12 }}
-                      label={{ value: 'Iterations/sec (higher is better)', angle: -90, position: 'insideLeft', fill: '#ccc', fontSize: 11, dx: 12, dy: 50 }}
+                      label={{ value: getYAxisLabel(), angle: -90, position: 'insideLeft', fill: '#ccc', fontSize: 11, dx: 12, dy: 50 }}
                       width={80}
                     />
                     <Tooltip
@@ -414,7 +474,7 @@ function App() {
                         <YAxis
                           stroke="#ccc"
                           tick={{ fill: '#ccc', fontSize: 12 }}
-                          label={{ value: 'Iterations/sec (higher is better)', angle: -90, position: 'insideLeft', fill: '#ccc', fontSize: 11, dx: 12, dy: 50 }}
+                          label={{ value: getYAxisLabel(), angle: -90, position: 'insideLeft', fill: '#ccc', fontSize: 11, dx: 12, dy: 50 }}
                           width={80}
                         />
                         <Tooltip
@@ -425,14 +485,12 @@ function App() {
                             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
                             color: '#fff'
                           }}
-                          formatter={(value) => {
-                            return [`${value} iter/sec`, 'Iterations per Second'];
-                          }}
+                          formatter={(value: number | string) => getTooltipFormatter(value)}
                         />
                         <Bar
-                          dataKey="opsPerSecond"
+                          dataKey="value"
                           radius={[6, 6, 0, 0]}
-                          name="Operations per Second"
+                          name={showDuration ? "MS per Operation" : "Iterations per Second"}
                           fill="#333333"
                         >
                           {getLibraryData(operation).map((entry, index) => (
@@ -486,6 +544,9 @@ function App() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Logs Reference (invisible but used for scrolling) */}
+        <div ref={logsEndRef} />
       </div>
     </div>
   )
