@@ -248,7 +248,7 @@ function App() {
       <div className="container mx-auto px-2 sm:px-4">
         <div className="text-center mb-6 sm:mb-12">
           <h1 className="text-4xl md:text-6xl font-bold mb-3 sm:mb-4 text-white">
-            CRDT Library Benchmarks
+            CRDT Libraries Benchmarks
           </h1>
           <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto mb-6 sm:mb-8 opacity-90">
             Compare performance between Yjs, Automerge, and Loro CRDT implementations
@@ -282,7 +282,7 @@ function App() {
             <CardContent className="px-3 sm:px-6 pb-3 sm:pb-4">
               <div className="pb-3 pt-1 sm:pt-2">
                 <Slider
-                  defaultValue={[opSize]}
+                  defaultValue={[OP_SIZE_OPTIONS.findIndex(size => size === opSize)]}
                   min={0}
                   max={OP_SIZE_OPTIONS.length - 1}
                   step={1}
@@ -350,38 +350,51 @@ function App() {
         <div className="mb-6 sm:mb-8">
           <h2 className="text-xl sm:text-2xl font-semibold text-center mb-4 sm:mb-8 text-white">Benchmark Progress</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-6">
-            {BENCHMARK_OPERATIONS.map((operation) => (
-              <Card
-                key={operation}
-                className={
-                  completedTests.has(operation)
-                    ? "card-completed"
-                    : loading && !completedTests.has(operation)
-                      ? "card-pending"
-                      : "card-gradient"
-                }
-              >
-                <CardContent className="p-5 flex items-center justify-between">
-                  <span className="font-medium text-white">{operation}</span>
-                  {completedTests.has(operation) ? (
-                    <Badge variant="outline" className="bg-black/50 text-white border-gray-400 flex items-center gap-1 px-3 py-1">
-                      <CheckCircle className="h-3.5 w-3.5" />
-                      <span>Complete</span>
-                    </Badge>
-                  ) : loading ? (
-                    <Badge variant="outline" className="bg-black/50 text-white border-gray-500 flex items-center gap-1 px-3 py-1">
-                      <Clock className="h-3.5 w-3.5 animate-pulse" />
-                      <span>Pending</span>
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="bg-black/50 text-gray-300 border-gray-700 flex items-center gap-1 px-3 py-1">
-                      <XCircle className="h-3.5 w-3.5" />
-                      <span>Not Started</span>
-                    </Badge>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+            {BENCHMARK_OPERATIONS.map((operation) => {
+              // Determine styling based on status
+              const isComplete = completedTests.has(operation);
+              const isPending = loading && !completedTests.has(operation);
+
+              let bgClass = "bg-gray-950";
+              let statusIcon = <XCircle className="h-5 w-5 text-gray-400" />;
+              let statusText = "Not Started";
+              let statusClass = "text-gray-400";
+              let borderClass = "border-gray-800";
+              let shadowEffect = "";
+
+              if (isComplete) {
+                bgClass = "bg-black";
+                statusIcon = <CheckCircle className="h-5 w-5 text-white" />;
+                statusText = "Complete";
+                statusClass = "text-white";
+                borderClass = "border-gray-700";
+                shadowEffect = "shadow-md";
+              } else if (isPending) {
+                bgClass = "bg-gray-900";
+                statusIcon = <Clock className="h-5 w-5 text-gray-300 animate-pulse" />;
+                statusText = "Pending";
+                statusClass = "text-gray-300";
+                borderClass = "border-gray-700";
+                shadowEffect = "shadow-sm";
+              }
+
+              return (
+                <div
+                  key={operation}
+                  className={`relative rounded-xl border ${borderClass} ${bgClass} ${shadowEffect} overflow-hidden transition-all duration-300 hover:scale-[1.02]`}
+                >
+                  <div className="relative p-4 sm:p-5">
+                    <div className="flex flex-col h-full">
+                      <h3 className="font-bold text-base sm:text-lg text-white mb-2">{operation}</h3>
+                      <div className={`flex items-center gap-1.5 ${statusClass} text-sm font-medium`}>
+                        {statusIcon}
+                        <span>{statusText}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
