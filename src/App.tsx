@@ -470,7 +470,7 @@ function App() {
             onClick={runBenchmarks}
             disabled={loading}
             size="lg"
-            className="w-56 h-14 bg-black hover:bg-white hover:text-black text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl border border-white/20"
+            className="w-56 h-14 bg-black hover:bg-white text-md hover:text-black text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl border border-white/20"
           >
             {loading ? (
               <>
@@ -491,7 +491,7 @@ function App() {
           <div className="mb-8 text-center">
             <Badge
               variant="outline"
-              className="text-xl py-2 px-4 bg-black/50 text-white border-white/20"
+              className="text-sm py-2 px-4 bg-black/50 text-white border-white/20"
             >
               {statusMessage}
             </Badge>
