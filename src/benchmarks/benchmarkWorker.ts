@@ -65,8 +65,7 @@ self.onmessage = async (e: MessageEvent) => {
                 self.postMessage({
                     type: "progress",
                     results,
-                    message:
-                        `All benchmarks completed successfully with ${opSize} operations per iteration`,
+                    message: "All benchmarks completed successfully",
                 });
             }, 500);
         } catch (error) {

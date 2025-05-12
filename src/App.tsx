@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts'
-import { CheckCircle, Clock, XCircle, Loader2, RefreshCw, Code, Copy, Check, HelpCircle } from 'lucide-react'
+import { CheckCircle, Clock, XCircle, Loader2, RefreshCw, Code, Copy, Check, HelpCircle, Clipboard } from 'lucide-react'
 import type { BenchmarkResult } from './benchmarks/simpleBench'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card'
@@ -34,6 +34,11 @@ const LIBRARY_COLORS: Record<string, string> = {
 // Operation size options
 const OP_SIZE_OPTIONS = [32, 128, 512, 2048, 16384, 65536];
 
+// Declare the global constants for TypeScript
+declare const __LORO_VERSION__: string;
+declare const __YJS_VERSION__: string;
+declare const __AUTOMERGE_VERSION__: string;
+
 function App() {
   const [results, setResults] = useState<BenchmarkResult[]>([])
   console.log({ results })
@@ -47,6 +52,7 @@ function App() {
   const [opSize, setOpSize] = useState<number>(BENCHMARK_CONFIG.OP_SIZE)
   const [showDuration, setShowDuration] = useState<boolean>(false)
   const [copying, setCopying] = useState(false)
+  const [copyingMarkdown, setCopyingMarkdown] = useState(false)
   const logsEndRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll logs to bottom when new logs are added
@@ -285,6 +291,77 @@ function App() {
     };
   }, []); // Only run once on mount
 
+  // Get library version information for Markdown
+  const getLibraryVersions = () => {
+    // Get versions from Vite define constants
+    return {
+      loro: __LORO_VERSION__,
+      yjs: __YJS_VERSION__,
+      automerge: __AUTOMERGE_VERSION__
+    };
+  };
+
+  // Create markdown format of results
+  const getMarkdownResults = () => {
+    if (results.length === 0) return '';
+
+    const versions = getLibraryVersions();
+    const currentDate = new Date().toISOString().split('T')[0] + ' ' +
+      new Date().toTimeString().split(' ')[0];
+
+    // Start with header information
+    let markdown = `- OP_SIZE = ${opSize}\n`;
+    markdown += `- Date: ${currentDate}\n`;
+    markdown += `- Loro version: ${versions.loro}\n`;
+    markdown += `- Yjs version: ${versions.yjs}\n`;
+    markdown += `- Automerge version: ${versions.automerge}\n\n`;
+
+    // Create table header
+    markdown += `| Task | Loro | Automerge | Yjs |\n`;
+    markdown += `| :---- | :---- | :---------- | :---- |\n`;
+
+    // Get unique operations
+    const operations = Array.from(new Set(results.map(r => r.name)));
+
+    // For each operation, add a row
+    operations.forEach(operation => {
+      let row = `| ${operation}`;
+
+      // Get result for each library
+      const loroResult = results.find(r => r.name === operation && r.library === 'Loro');
+      const automergeResult = results.find(r => r.name === operation && r.library === 'Automerge');
+      const yjsResult = results.find(r => r.name === operation && r.library === 'Yjs');
+
+      // Format the values based on display mode
+      if (showDuration) {
+        // MS per iteration
+        row += ` | ${loroResult ? `${(loroResult.executionTime).toFixed(3)} ms` : 'N/A'}`;
+        row += ` | ${automergeResult ? `${(automergeResult.executionTime).toFixed(3)} ms` : 'N/A'}`;
+        row += ` | ${yjsResult ? `${(yjsResult.executionTime).toFixed(3)} ms` : 'N/A'} |`;
+      } else {
+        // Iterations per second
+        row += ` | ${loroResult ? `${Math.round(loroResult.iterPerSecond)} op/s` : 'N/A'}`;
+        row += ` | ${automergeResult ? `${Math.round(automergeResult.iterPerSecond)} op/s` : 'N/A'}`;
+        row += ` | ${yjsResult ? `${Math.round(yjsResult.iterPerSecond)} op/s` : 'N/A'} |`;
+      }
+
+      markdown += row + '\n';
+    });
+
+    return markdown;
+  };
+
+  // Copy markdown results to clipboard
+  const copyMarkdownResults = async () => {
+    const markdown = getMarkdownResults();
+    if (markdown) {
+      await navigator.clipboard.writeText(markdown);
+      setCopyingMarkdown(true);
+      addLog('Copied benchmark results as Markdown to clipboard');
+      setTimeout(() => setCopyingMarkdown(false), 2000);
+    }
+  };
+
   return (
     <div className="min-h-screen app-background py-6 sm:py-12">
       <div className="container mx-auto px-2 sm:px-4">
@@ -463,20 +540,40 @@ function App() {
         {/* Results Section - Show when we have results */}
         {results.length > 0 && (
           <div className="space-y-6 sm:space-y-12">
-            {/* Display Mode Toggle */}
-            <div className="flex items-center justify-center gap-4 mb-4">
-              <Label htmlFor="metric-toggle" className={`text-sm ${!showDuration ? 'text-white font-medium' : 'text-white/40'}`}>
-                Iterations per Second
-              </Label>
-              <Switch
-                id="metric-toggle"
-                checked={showDuration}
-                onCheckedChange={setShowDuration}
-                className="data-[state=checked]:bg-white data-[state=unchecked]:bg-black border-white/30"
-              />
-              <Label htmlFor="metric-toggle" className={`text-sm ${showDuration ? 'text-white font-medium' : 'text-white/40'}`}>
-                MS per Iteration
-              </Label>
+            {/* Display Mode Toggle and Copy Results Button */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
+              <div className="flex items-center gap-4">
+                <Label htmlFor="metric-toggle" className={`text-sm ${!showDuration ? 'text-white font-medium' : 'text-white/40'}`}>
+                  Iterations per Second
+                </Label>
+                <Switch
+                  id="metric-toggle"
+                  checked={showDuration}
+                  onCheckedChange={setShowDuration}
+                  className="data-[state=checked]:bg-white data-[state=unchecked]:bg-black border-white/30"
+                />
+                <Label htmlFor="metric-toggle" className={`text-sm ${showDuration ? 'text-white font-medium' : 'text-white/40'}`}>
+                  MS per Iteration
+                </Label>
+              </div>
+
+              <Button
+                onClick={copyMarkdownResults}
+                className="mt-4 sm:mt-0 bg-black hover:bg-white hover:text-black text-white border border-white/20 shadow-sm"
+                size="sm"
+              >
+                {copyingMarkdown ? (
+                  <>
+                    <Check className="mr-2 h-4 w-4" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Clipboard className="mr-2 h-4 w-4" />
+                    Copy as Markdown
+                  </>
+                )}
+              </Button>
             </div>
 
             <Card className="card-gradient overflow-hidden p-3 sm:p-6 border-0">

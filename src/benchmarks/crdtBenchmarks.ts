@@ -632,6 +632,98 @@ for (let i = 0; i < SYNC_ITERATIONS; i++) {
             }
         },
     },
+
+    // Version checkout operations
+    "Loro - Version Checkout": {
+        code: `
+const doc = new LoroDoc();
+const text = doc.getText("text");
+const versionEntries = [];
+
+// Create a long text by appending new content in each iteration
+for (let i = 0; i < 128; i++) {
+    text.push(
+        "Appending new content to simulate document growth. ",
+    );
+    // Save the version after each change
+    doc.commit();
+    versionEntries.push(doc.frontiers());
+}
+
+const results = [];
+for (let i = versionEntries.length - 1; i >= 0; i--) {
+    doc.checkout(versionEntries[i]);
+    results.push(text.toString());
+}
+`,
+        fn: () => {
+            const doc = new LoroDoc();
+            const text = doc.getText("text");
+            const versionEntries = [];
+
+            // Create a long text by appending new content in each iteration
+            for (let i = 0; i < 128; i++) {
+                text.push(
+                    "Appending new content to simulate document growth. ",
+                );
+                // Save the version after each change
+                doc.commit();
+                versionEntries.push(doc.frontiers());
+            }
+
+            const results = [];
+            for (let i = versionEntries.length - 1; i >= 0; i--) {
+                doc.checkout(versionEntries[i]);
+                results.push(text.toString());
+            }
+        },
+    },
+    "Automerge - Version Checkout": {
+        code: `let doc = Automerge.init<AutomergeTextDoc>();
+const versionEntries = [];
+
+// Create a long text by appending new content in each iteration
+for (let i = 0; i < 128; i++) {
+    doc = Automerge.change(doc, (d: AutomergeTextDoc) => {
+        if (!d.text) d.text = new Automerge.Text();
+        d.text.insertAt(
+            d.text.length,
+            "Appending new content to simulate document growth. ",
+        );
+    });
+    // Save the version after each change
+    versionEntries.push(Automerge.getHeads(doc));
+}
+
+const results = [];
+for (let i = versionEntries.length - 1; i >= 0; i--) {
+    doc = Automerge.clone(Automerge.view(doc, versionEntries[i]));
+    results.push(doc.text?.toString());
+}`,
+        fn: () => {
+            let doc = Automerge.init<AutomergeTextDoc>();
+            const versionEntries = [];
+
+            // Create a long text by appending new content in each iteration
+            for (let i = 0; i < 128; i++) {
+                doc = Automerge.change(doc, (d: AutomergeTextDoc) => {
+                    if (!d.text) d.text = new Automerge.Text();
+                    d.text.insertAt(
+                        d.text.length,
+                        "Appending new content to simulate document growth. ",
+                    );
+                });
+                // Save the version after each change
+                versionEntries.push(Automerge.getHeads(doc));
+            }
+
+            const results = [];
+            for (let i = versionEntries.length - 1; i >= 0; i--) {
+                doc = Automerge.clone(Automerge.view(doc, versionEntries[i]));
+                results.push(doc.text?.toString());
+            }
+        },
+    },
 };
 
 export const BENCHMARK_GROUPS = (() => {
