@@ -42,9 +42,9 @@ const BENCHMARK_OPERATIONS = (() => {
 
 // Colors for different libraries
 const LIBRARY_COLORS: Record<string, string> = {
-  'Yjs': '#333333',
-  'Automerge': '#666666',
-  'Loro': '#999999'
+  'Yjs': '#CCC',     // Changed to white for high contrast
+  'Automerge': '#888', // Changed to light gray
+  'Loro': '#555555'    // Changed to darker gray
 }
 
 // Operation size options
@@ -277,6 +277,22 @@ function App() {
         font-size: 0.9em !important;
         background: transparent !important;
       }
+      
+      /* Force scrollbar to be visible on Windows */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+        background: rgba(0, 0, 0, 0.1);
+      }
+      
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 4px;
+      }
+      
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.25);
+      }
     `;
     document.head.appendChild(styleEl);
 
@@ -292,14 +308,14 @@ function App() {
           <h1 className="text-4xl md:text-6xl font-bold mb-3 sm:mb-4 text-white">
             CRDT Libraries Benchmarks
           </h1>
-          <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto mb-6 sm:mb-8 opacity-90">
+          <p className="text-base sm:text-lg text-white max-w-2xl mx-auto mb-6 sm:mb-8 opacity-90">
             Compare performance between Yjs, Automerge, and Loro CRDT implementations
           </p>
 
           {/* Operation Size Selector */}
           <Card className="max-w-xl p-2 mx-auto mb-6 sm:mb-8 card-gradient">
             <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-6">
-              <CardTitle className="flex items-center text-gray-100">
+              <CardTitle className="flex items-center text-white">
                 <span>Operations Size</span>
                 <TooltipProvider delayDuration={100}>
                   <UITooltip>
@@ -308,7 +324,7 @@ function App() {
                         <HelpCircle className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent side="right" className="max-w-xs p-2">
+                    <TooltipContent side="right" className="max-w-xs p-2 bg-black text-white border border-white/20">
                       <p>
                         Controls how many operations each CRDT library performs in a single benchmark iteration.
                         Higher values will test performance with larger data structures.
@@ -317,7 +333,7 @@ function App() {
                   </UITooltip>
                 </TooltipProvider>
               </CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardDescription className="text-white/60">
                 Current: {opSize} operations
               </CardDescription>
             </CardHeader>
@@ -341,7 +357,7 @@ function App() {
                     return (
                       <div
                         key={i}
-                        className="absolute text-xs text-gray-400 transform -translate-x-1/2"
+                        className="absolute text-xs text-white/60 transform -translate-x-1/2"
                         style={{
                           left: `${position}%`,
                           width: 'max-content'
@@ -360,7 +376,7 @@ function App() {
             onClick={runBenchmarks}
             disabled={loading}
             size="lg"
-            className="w-56 h-14 bg-black hover:bg-gray-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl border border-gray-700"
+            className="w-56 h-14 bg-black hover:bg-white hover:text-black text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl border border-white/20"
           >
             {loading ? (
               <>
@@ -376,17 +392,17 @@ function App() {
           </Button>
         </div>
 
-        {/* Status Message */}
-        {/* {statusMessage && (
+        {/* Status Message - Display only when needed */}
+        {statusMessage && (
           <div className="mb-8 text-center">
             <Badge
               variant="outline"
-              className={`text-xl py-2 px-4 ${loading ? "bg-black/50 text-white border-gray-500" : "bg-black/50 text-white border-gray-400"}`}
+              className="text-xl py-2 px-4 bg-black/50 text-white border-white/20"
             >
               {statusMessage}
             </Badge>
           </div>
-        )} */}
+        )}
 
         {/* Test Status Indicators */}
         <div className="mb-6 sm:mb-8">
@@ -397,11 +413,11 @@ function App() {
               const isComplete = completedTests.has(operation);
               const isPending = loading && !completedTests.has(operation);
 
-              let bgClass = "bg-gray-950";
-              let statusIcon = <XCircle className="h-5 w-5 text-gray-400" />;
+              let bgClass = "bg-black";
+              let statusIcon = <XCircle className="h-5 w-5 text-white/40" />;
               let statusText = "Not Started";
-              let statusClass = "text-gray-400";
-              let borderClass = "border-gray-800";
+              let statusClass = "text-white/40";
+              let borderClass = "border-white/10";
               let shadowEffect = "";
 
               if (isComplete) {
@@ -409,14 +425,14 @@ function App() {
                 statusIcon = <CheckCircle className="h-5 w-5 text-white" />;
                 statusText = "Complete";
                 statusClass = "text-white";
-                borderClass = "border-gray-700";
+                borderClass = "border-white/20";
                 shadowEffect = "shadow-md";
               } else if (isPending) {
-                bgClass = "bg-gray-900";
-                statusIcon = <Clock className="h-5 w-5 text-gray-300 animate-pulse" />;
+                bgClass = "bg-black";
+                statusIcon = <Clock className="h-5 w-5 text-white/80 animate-pulse" />;
                 statusText = "Pending";
-                statusClass = "text-gray-300";
-                borderClass = "border-gray-700";
+                statusClass = "text-white/80";
+                borderClass = "border-white/15";
                 shadowEffect = "shadow-sm";
               }
 
@@ -441,7 +457,7 @@ function App() {
                               <Badge
                                 key={lib}
                                 variant="outline"
-                                className="bg-black/40 hover:bg-black/60 hover:scale-105 transform transition-all cursor-pointer border-gray-700 hover:border-gray-500 flex items-center gap-1.5"
+                                className="bg-black hover:bg-white/10 hover:scale-105 transform transition-all cursor-pointer border-white/20 hover:border-white/40 flex items-center gap-1.5"
                                 onClick={() => showCode(codeKey, CODE_SNIPPETS[codeKey].code)}
                               >
                                 {lib}
@@ -465,15 +481,16 @@ function App() {
           <div className="space-y-6 sm:space-y-12">
             {/* Display Mode Toggle */}
             <div className="flex items-center justify-center gap-4 mb-4">
-              <Label htmlFor="metric-toggle" className={`text-sm ${!showDuration ? 'text-white font-medium' : 'text-gray-400'}`}>
+              <Label htmlFor="metric-toggle" className={`text-sm ${!showDuration ? 'text-white font-medium' : 'text-white/40'}`}>
                 Iterations per Second
               </Label>
               <Switch
                 id="metric-toggle"
                 checked={showDuration}
                 onCheckedChange={setShowDuration}
+                className="data-[state=checked]:bg-white data-[state=unchecked]:bg-black border-white/30"
               />
-              <Label htmlFor="metric-toggle" className={`text-sm ${showDuration ? 'text-white font-medium' : 'text-gray-400'}`}>
+              <Label htmlFor="metric-toggle" className={`text-sm ${showDuration ? 'text-white font-medium' : 'text-white/40'}`}>
                 MS per Iteration
               </Label>
             </div>
@@ -483,7 +500,7 @@ function App() {
                 <CardTitle className="text-center text-xl sm:text-2xl text-white">
                   {showDuration ? 'MS per Iteration - All Libraries' : 'Iterations per Second - All Libraries'}
                 </CardTitle>
-                <CardDescription className="text-center text-gray-400">
+                <CardDescription className="text-center text-white/60">
                   Each iteration performs {opSize} operations
                 </CardDescription>
               </CardHeader>
@@ -496,19 +513,19 @@ function App() {
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                     <XAxis
                       dataKey="name"
-                      stroke="#ccc"
-                      tick={{ fill: '#ccc', fontSize: 12 }}
+                      stroke="#fff"
+                      tick={{ fill: '#fff', fontSize: 12 }}
                     />
                     <YAxis
-                      stroke="#ccc"
-                      tick={{ fill: '#ccc', fontSize: 12 }}
-                      label={{ value: getYAxisLabel(), angle: -90, position: 'insideLeft', fill: '#ccc', fontSize: 11, dx: 12, dy: 50 }}
+                      stroke="#fff"
+                      tick={{ fill: '#fff', fontSize: 12 }}
+                      label={{ value: getYAxisLabel(), angle: -90, position: 'insideLeft', fill: '#fff', fontSize: 11, dx: 12, dy: 50 }}
                       width={80}
                     />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                        border: '1px solid #444',
+                        border: '1px solid #ffffff40',
                         borderRadius: '8px',
                         boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
                         color: '#fff'
@@ -530,7 +547,7 @@ function App() {
                     <CardTitle className="text-center text-lg sm:text-xl text-white">
                       {operation}
                     </CardTitle>
-                    <CardDescription className="text-center text-gray-400">
+                    <CardDescription className="text-center text-white/60">
                       Each iteration performs {opSize} operations
                     </CardDescription>
                   </CardHeader>
@@ -543,19 +560,19 @@ function App() {
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                         <XAxis
                           dataKey="library"
-                          stroke="#ccc"
-                          tick={{ fill: '#ccc', fontSize: 12 }}
+                          stroke="#fff"
+                          tick={{ fill: '#fff', fontSize: 12 }}
                         />
                         <YAxis
-                          stroke="#ccc"
-                          tick={{ fill: '#ccc', fontSize: 12 }}
-                          label={{ value: getYAxisLabel(), angle: -90, position: 'insideLeft', fill: '#ccc', fontSize: 11, dx: 12, dy: 50 }}
+                          stroke="#fff"
+                          tick={{ fill: '#fff', fontSize: 12 }}
+                          label={{ value: getYAxisLabel(), angle: -90, position: 'insideLeft', fill: '#fff', fontSize: 11, dx: 12, dy: 50 }}
                           width={80}
                         />
                         <Tooltip
                           contentStyle={{
                             backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                            border: '1px solid #444',
+                            border: '1px solid #ffffff40',
                             borderRadius: '8px',
                             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
                             color: '#fff'
@@ -585,7 +602,7 @@ function App() {
                       <Button
                         key={entry.library}
                         variant="outline"
-                        className="flex items-center gap-1 sm:gap-2 border-gray-600 hover:bg-black/40 text-xs sm:text-sm px-2 sm:px-3"
+                        className="flex items-center gap-1 sm:gap-2 border-white/20 hover:bg-white/10 text-xs sm:text-sm px-2 sm:px-3"
                         onClick={() => showCode(`${entry.library} - ${operation}`, entry.code)}
                       >
                         <Code className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -601,22 +618,22 @@ function App() {
 
         {/* Code Viewing Dialog */}
         <Dialog open={codeDialogOpen} onOpenChange={setCodeDialogOpen}>
-          <DialogContent className="max-w-3xl bg-black border border-gray-800 text-white">
+          <DialogContent className="max-w-3xl bg-black border border-white/20 text-white">
             <DialogHeader className="pb-3">
               <DialogTitle className="mb-0">
                 <span className="text-lg font-medium">{selectedCode.title}</span>
               </DialogTitle>
             </DialogHeader>
-            <div className="bg-gray-900 p-4 rounded-md overflow-hidden relative">
+            <div className="bg-black p-4 rounded-md overflow-hidden relative border border-white/10">
               <Button
                 variant="outline"
                 size="sm"
-                className="absolute top-3 right-3 h-7 px-2 rounded-md hover:bg-gray-800 border-gray-700 flex items-center gap-1.5 bg-gray-900/90 backdrop-blur-sm z-10 shadow-md opacity-70 hover:opacity-100 transition-opacity"
+                className="absolute top-3 right-3 h-7 px-2 rounded-md hover:bg-white/10 border-white/20 flex items-center gap-1.5 bg-black/90 backdrop-blur-sm z-10 shadow-md opacity-70 hover:opacity-100 transition-opacity"
                 onClick={copyCode}
               >
                 {copying ? (
                   <>
-                    <Check className="h-3 w-3 text-green-500" />
+                    <Check className="h-3 w-3 text-white" />
                     <span className="text-xs">Copied</span>
                   </>
                 ) : (

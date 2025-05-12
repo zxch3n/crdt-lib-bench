@@ -5,32 +5,32 @@
 @layer base {
   :root {
     --background: 0 0% 0%;
-    --foreground: 0 0% 95%;
+    --foreground: 0 0% 100%;
     
-    --card: 0 0% 5%;
-    --card-foreground: 0 0% 95%;
+    --card: 0 0% 0%;
+    --card-foreground: 0 0% 100%;
     
-    --popover: 0 0% 5%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 0 0% 0%;
+    --popover-foreground: 0 0% 100%;
     
-    --primary: 0 0% 20%;
-    --primary-foreground: 0 0% 95%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
     
-    --secondary: 0 0% 10%;
-    --secondary-foreground: 0 0% 95%;
+    --secondary: 0 0% 0%;
+    --secondary-foreground: 0 0% 100%;
     
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 60%;
+    --muted: 0 0% 0%;
+    --muted-foreground: 0 0% 70%;
     
-    --accent: 0 0% 25%;
-    --accent-foreground: 0 0% 95%;
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 100%;
     
-    --destructive: 0 0% 30%;
-    --destructive-foreground: 0 0% 95%;
+    --destructive: 0 0% 0%;
+    --destructive-foreground: 0 0% 100%;
     
-    --border: 0 0% 15%;
-    --input: 0 0% 15%;
-    --ring: 0 0% 40%;
+    --border: 0 0% 100%;
+    --input: 0 0% 0%;
+    --ring: 0 0% 100%;
     
     --radius: 0.5rem;
   }
@@ -65,39 +65,39 @@ html, body, #root {
 
 /* Custom background styles */
 .app-background {
-  background: #111111;
+  background: #000000;
 }
 
 /* Custom card styles */
 .card-gradient {
-  background: rgba(17, 17, 17, 0.7);
+  background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(50, 50, 50, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
 .card-completed {
-  background: rgba(25, 25, 25, 0.7);
-  border: 1px solid rgba(50, 50, 50, 0.4);
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
 .card-pending {
-  background: rgba(17, 17, 17, 0.7);
+  background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(70, 70, 70, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   animation: pulse 2s infinite ease-in-out;
 }
 
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 5px rgba(150, 150, 150, 0.2);
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.1);
   }
   50% {
-    box-shadow: 0 0 20px rgba(150, 150, 150, 0.4);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
   }
   100% {
-    box-shadow: 0 0 5px rgba(150, 150, 150, 0.2);
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.1);
   }
 }
 
