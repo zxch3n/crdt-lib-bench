@@ -1,8 +1,24 @@
 {
-  "name": "crdt-bench",
+  "name": "crdt-lib-bench",
+  "description": "Browser-based benchmarking tool to compare performance of popular CRDT libraries (Yjs, Loro, and Automerge)",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/crdt-lib-bench.git"
+  },
+  "keywords": [
+    "crdt",
+    "benchmark",
+    "yjs",
+    "automerge",
+    "loro",
+    "performance",
+    "comparison"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
