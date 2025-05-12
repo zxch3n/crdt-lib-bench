@@ -1,4 +1,8 @@
-import { BENCHMARK_CONFIG, CRDTBenchmarks } from "./crdtBenchmarks";
+import {
+    BENCHMARK_CONFIG,
+    BENCHMARK_GROUPS,
+    CRDTBenchmarks,
+} from "./crdtBenchmarks";
 
 let benchmarks: CRDTBenchmarks | null = null;
 
@@ -21,7 +25,7 @@ self.onmessage = async (e: MessageEvent) => {
                     results,
                     message: `Completed ${
                         new Set(results.map((r) => r.name)).size
-                    } of 5 benchmark suites`,
+                    } of ${BENCHMARK_GROUPS.length} benchmark suites`,
                 });
             });
 
@@ -61,7 +65,8 @@ self.onmessage = async (e: MessageEvent) => {
                 self.postMessage({
                     type: "progress",
                     results,
-                    message: "Re-sending final results to ensure receipt",
+                    message:
+                        `All benchmarks completed successfully with ${opSize} operations per iteration`,
                 });
             }, 500);
         } catch (error) {
@@ -103,7 +108,7 @@ self.onmessage = async (e: MessageEvent) => {
                     results,
                     message: `Completed ${
                         new Set(results.map((r) => r.name)).size
-                    } of 5 benchmark suites`,
+                    } of ${BENCHMARK_GROUPS.length} benchmark suites`,
                 });
             }, opSize);
 
@@ -145,7 +150,8 @@ self.onmessage = async (e: MessageEvent) => {
                 self.postMessage({
                     type: "progress",
                     results,
-                    message: "Re-sending final results to ensure receipt",
+                    message:
+                        `All benchmarks completed successfully with ${opSize} operations per iteration`,
                 });
             }, 500);
         } catch (error) {

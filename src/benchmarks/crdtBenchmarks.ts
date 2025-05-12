@@ -185,6 +185,180 @@ for (let i = 0; i < OP_SIZE; i++) {
         },
     },
 
+    // Add the new concurrent map entry benchmark
+    "Yjs - Map Concurrent Same Entry": {
+        code: `
+const doc = new Y.Doc();
+const map = doc.getMap("map");
+map.set("key", 0);
+
+// Create 1000 concurrent docs
+const concurrentDocs = Array(OP_SIZE).fill(0).map(() => {
+    const doc = new Y.Doc();
+    // Initialize with the same value
+    const map = doc.getMap("map");
+    map.set("key", 0);
+    return doc;
+});
+
+// Each concurrent doc updates the same entry with a different value
+concurrentDocs.forEach((concurrentDoc, i) => {
+    const map = concurrentDoc.getMap("map");
+    map.set("key", i + 1);
+});
+
+// Merge all docs back to the original
+concurrentDocs.forEach((concurrentDoc) => {
+    Y.applyUpdate(doc, Y.encodeStateAsUpdate(concurrentDoc));
+});`,
+        fn: () => {
+            const doc = new Y.Doc();
+            const map = doc.getMap("map");
+            map.set("key", 0);
+
+            // Create 1000 concurrent docs
+            const concurrentDocs = Array(BENCHMARK_CONFIG.OP_SIZE).fill(0).map(
+                () => {
+                    const doc = new Y.Doc();
+                    // Initialize with the same value
+                    const map = doc.getMap("map");
+                    map.set("key", 0);
+                    return doc;
+                },
+            );
+
+            // Each concurrent doc updates the same entry with a different value
+            concurrentDocs.forEach((concurrentDoc, i) => {
+                const map = concurrentDoc.getMap("map");
+                map.set("key", i + 1);
+            });
+
+            // Merge all docs back to the original
+            doc.transact(() => {
+                concurrentDocs.forEach((concurrentDoc) => {
+                    Y.applyUpdate(doc, Y.encodeStateAsUpdate(concurrentDoc));
+                });
+            });
+        },
+    },
+    "Automerge - Map Concurrent Same Entry": {
+        code: `
+let doc = Automerge.init<AutomergeMapDoc>();
+doc = Automerge.change(doc, (d: AutomergeMapDoc) => {
+    if (!d.map) d.map = {};
+    d.map["key"] = 0;
+});
+
+// Create 1000 concurrent docs
+const concurrentDocs = Array(BENCHMARK_CONFIG.OP_SIZE).fill(0).map(() => {
+    const newDoc = Automerge.clone(doc);
+    return newDoc;
+});
+
+// Each concurrent doc updates the same entry with a different value
+concurrentDocs.forEach((concurrentDoc, i) => {
+    concurrentDocs[i] = Automerge.change(concurrentDoc, (d: AutomergeMapDoc) => {
+        if (!d.map) d.map = {};
+        d.map["key"] = i + 1;
+    });
+});
+
+// Merge all docs back to the original
+let finalDoc = doc;
+concurrentDocs.forEach((concurrentDoc) => {
+    finalDoc = Automerge.merge(finalDoc, concurrentDoc);
+});`,
+        fn: () => {
+            let doc = Automerge.init<AutomergeMapDoc>();
+            doc = Automerge.change(doc, (d: AutomergeMapDoc) => {
+                if (!d.map) d.map = {};
+                d.map["key"] = 0;
+            });
+
+            // Create 1000 concurrent docs
+            const concurrentDocs = Array(BENCHMARK_CONFIG.OP_SIZE).fill(0).map(
+                () => {
+                    const newDoc = Automerge.clone(doc);
+                    return newDoc;
+                },
+            );
+
+            // Each concurrent doc updates the same entry with a different value
+            concurrentDocs.forEach((concurrentDoc, i) => {
+                concurrentDocs[i] = Automerge.change(
+                    concurrentDoc,
+                    (d: AutomergeMapDoc) => {
+                        if (!d.map) d.map = {};
+                        d.map["key"] = i + 1;
+                    },
+                );
+            });
+
+            // Merge all docs back to the original
+            let finalDoc = doc;
+            concurrentDocs.forEach((concurrentDoc) => {
+                finalDoc = Automerge.merge(finalDoc, concurrentDoc);
+            });
+        },
+    },
+    "Loro - Map Concurrent Same Entry": {
+        code: `
+const doc = new LoroDoc();
+const map = doc.getMap("map");
+map.set("key", 0);
+
+// Create 1000 concurrent docs
+const concurrentDocs = Array(BENCHMARK_CONFIG.OP_SIZE).fill(0).map(() => {
+    const doc = new LoroDoc();
+    // Initialize with the same value
+    const map = doc.getMap("map");
+    map.set("key", 0);
+    return doc;
+});
+
+// Each concurrent doc updates the same entry with a different value
+concurrentDocs.forEach((concurrentDoc, i) => {
+    const map = concurrentDoc.getMap("map");
+    map.set("key", i + 1);
+});
+
+// Merge all docs back to the original
+doc.importBatch(
+    concurrentDocs.map((concurrentDoc) =>
+        concurrentDoc.export({ mode: "update" })
+    ),
+); `,
+        fn: () => {
+            const doc = new LoroDoc();
+            const map = doc.getMap("map");
+            map.set("key", 0);
+
+            // Create 1000 concurrent docs
+            const concurrentDocs = Array(BENCHMARK_CONFIG.OP_SIZE).fill(0).map(
+                () => {
+                    const doc = new LoroDoc();
+                    // Initialize with the same value
+                    const map = doc.getMap("map");
+                    map.set("key", 0);
+                    return doc;
+                },
+            );
+
+            // Each concurrent doc updates the same entry with a different value
+            concurrentDocs.forEach((concurrentDoc, i) => {
+                const map = concurrentDoc.getMap("map");
+                map.set("key", i + 1);
+            });
+
+            // Merge all docs back to the original
+            doc.importBatch(
+                concurrentDocs.map((concurrentDoc) =>
+                    concurrentDoc.export({ mode: "update" })
+                ),
+            );
+        },
+    },
+
     // Tree operations (only for Loro which has dedicated tree ops)
     "Loro - Tree Operations": {
         code: `
@@ -459,6 +633,21 @@ for (let i = 0; i < SYNC_ITERATIONS; i++) {
         },
     },
 };
+
+export const BENCHMARK_GROUPS = (() => {
+    // Extract all unique operation types
+    const uniqueOps = new Set<string>();
+
+    Object.keys(CODE_SNIPPETS).forEach((key) => {
+        const parts = key.split(" - ");
+        if (parts.length > 1) {
+            uniqueOps.add(parts[1]);
+        }
+    });
+
+    // Return sorted array of operations
+    return Array.from(uniqueOps).sort();
+})();
 
 export class CRDTBenchmarks {
     private bench: SimpleBench;

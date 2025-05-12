@@ -17,28 +17,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription }
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Slider } from '@/components/ui/slider'
-import { BENCHMARK_CONFIG, CODE_SNIPPETS } from './benchmarks/crdtBenchmarks'
+import { BENCHMARK_CONFIG, BENCHMARK_GROUPS, CODE_SNIPPETS } from './benchmarks/crdtBenchmarks'
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
-
-// Define the benchmark operations dynamically from CODE_SNIPPETS and make sure the operations are properly grouped
-const BENCHMARK_OPERATIONS = (() => {
-  // Extract all unique operation types
-  const uniqueOps = new Set<string>();
-
-  Object.keys(CODE_SNIPPETS).forEach(key => {
-    const parts = key.split(' - ');
-    if (parts.length > 1) {
-      uniqueOps.add(parts[1]);
-    }
-  });
-
-  // Return sorted array of operations
-  return Array.from(uniqueOps).sort();
-})();
 
 // Colors for different libraries
 const LIBRARY_COLORS: Record<string, string> = {
@@ -408,7 +392,7 @@ function App() {
         <div className="mb-6 sm:mb-8">
           <h2 className="text-xl sm:text-2xl font-semibold text-center mb-4 sm:mb-8 text-white">Benchmark Progress</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-6">
-            {BENCHMARK_OPERATIONS.map((operation) => {
+            {BENCHMARK_GROUPS.map((operation) => {
               // Determine styling based on status
               const isComplete = completedTests.has(operation);
               const isPending = loading && !completedTests.has(operation);
