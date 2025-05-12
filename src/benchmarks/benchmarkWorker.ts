@@ -7,6 +7,7 @@ import {
 let benchmarks: CRDTBenchmarks | null = null;
 
 self.onmessage = async (e: MessageEvent) => {
+    // Handle string message (legacy)
     if (e.data === "start") {
         try {
             console.log("[Worker] Starting benchmark process");
@@ -153,6 +154,73 @@ self.onmessage = async (e: MessageEvent) => {
                         `All benchmarks completed successfully with ${opSize} operations per iteration`,
                 });
             }, 500);
+        } catch (error) {
+            console.error("[Worker] Benchmark error:", error);
+
+            if (error instanceof Error) {
+                self.postMessage({
+                    type: "error",
+                    error: error.message,
+                    stack: error.stack,
+                });
+            } else {
+                self.postMessage({
+                    type: "error",
+                    error: "An unknown error occurred",
+                });
+            }
+        }
+    } else if (typeof e.data === "object" && e.data.type === "runSingle") {
+        try {
+            const {
+                benchmarkName,
+                opSize = BENCHMARK_CONFIG.OP_SIZE,
+            } = e.data;
+
+            console.log(
+                `[Worker] Starting benchmarks for operation: ${benchmarkName} with OP_SIZE: ${opSize}`,
+            );
+
+            self.postMessage({
+                type: "status",
+                message:
+                    `Initializing benchmarks for operation: ${benchmarkName} with operation size: ${opSize}...`,
+            });
+
+            benchmarks = new CRDTBenchmarks((results) => {
+                // Progress update callback
+                console.log(
+                    `[Worker] Progress update: ${results.length} results so far`,
+                );
+                self.postMessage({
+                    type: "progress",
+                    results,
+                    message:
+                        `Running benchmarks for operation: ${benchmarkName}`,
+                });
+            }, opSize);
+
+            self.postMessage({
+                type: "status",
+                message:
+                    `Running benchmarks for operation: ${benchmarkName} with ${opSize} operations per iteration...`,
+            });
+            console.time("[Worker] Benchmark time");
+
+            const results = await benchmarks.runSingleBenchmark(benchmarkName);
+
+            console.log("[Worker] Benchmark results:", results);
+            console.timeEnd("[Worker] Benchmark time");
+            console.log(
+                `[Worker] Benchmarks for operation ${benchmarkName} completed`,
+            );
+
+            self.postMessage({
+                type: "complete",
+                results,
+                message:
+                    `Benchmarks for operation ${benchmarkName} completed successfully`,
+            });
         } catch (error) {
             console.error("[Worker] Benchmark error:", error);
 

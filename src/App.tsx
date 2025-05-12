@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts'
-import { CheckCircle, Clock, CircleDashed, Loader2, RefreshCw, Code, Copy, Check, HelpCircle, Clipboard } from 'lucide-react'
+import { CheckCircle, Clock, CircleDashed, Loader2, RefreshCw, Code, Copy, Check, HelpCircle, Clipboard, Play } from 'lucide-react'
 import type { BenchmarkResult } from './benchmarks/simpleBench'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card'
@@ -45,6 +45,7 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [worker, setWorker] = useState<Worker | null>(null)
   const [completedTests, setCompletedTests] = useState<Set<string>>(new Set())
+  const [runningOperation, setRunningOperation] = useState<string | null>(null)
   const [statusMessage, setStatusMessage] = useState<string>("")
   const [logs, setLogs] = useState<string[]>([])
   const [codeDialogOpen, setCodeDialogOpen] = useState(false)
@@ -78,7 +79,7 @@ function App() {
         case 'progress': {
           if (newResults && newResults.length > 0) {
             console.log("Progress update with results:", newResults);
-            setResults(newResults);
+            setResults(prev => [...prev, ...newResults.filter((r: BenchmarkResult) => !prev.some(p => p.name === r.name && p.library === r.library))]);
             addLog(`Received ${newResults.length} benchmark results`);
           }
 
@@ -87,14 +88,14 @@ function App() {
             addLog(message);
           }
 
-          // Update completed tests
-          if (newResults) {
+          // Update completed tests based on operation names
+          if (newResults && newResults.length > 0) {
+            // Create a set of the unique operation names from results
             const completedOps = new Set<string>();
             newResults.forEach((r: BenchmarkResult) => {
-              if (typeof r.name === 'string') {
-                completedOps.add(r.name);
-              }
+              completedOps.add(r.name);
             });
+
             setCompletedTests(completedOps);
           }
           break;
@@ -102,13 +103,33 @@ function App() {
         case 'complete': {
           if (newResults && newResults.length > 0) {
             console.log("Complete with results:", newResults);
-            setResults(newResults);
-            addLog(`Final benchmark results: ${newResults.length} total results`);
+            setResults(prev => [...prev, ...newResults.filter((r: BenchmarkResult) => !prev.some(p => p.name === r.name && p.library === r.library))]);
+            addLog(`Benchmark results: ${newResults.length} total results`);
+
+            // If this is from a single benchmark run, check if there are more to run
+            if (e.data.singleRunComplete) {
+              const { currentIndex, benchmarkKeys } = e.data;
+              if (currentIndex < benchmarkKeys.length - 1) {
+                // Run the next benchmark in the queue
+                const nextBenchmark = benchmarkKeys[currentIndex + 1];
+                addLog(`Running next benchmark: ${nextBenchmark}`);
+                worker?.postMessage({
+                  type: 'runSingle',
+                  benchmarkName: nextBenchmark,
+                  opSize,
+                  currentIndex: currentIndex + 1,
+                  benchmarkKeys
+                });
+                return; // Don't set loading to false yet
+              }
+            }
           } else {
             addLog("Received complete message but no results were present");
           }
 
+          // Reset state when benchmarks are complete
           setLoading(false);
+          setRunningOperation(null);
           setStatusMessage(message || "All benchmarks completed successfully");
           addLog(message || "Benchmarks completed");
           break;
@@ -138,11 +159,34 @@ function App() {
     setLoading(true);
     setResults([]);
     setCompletedTests(new Set());
+    setRunningOperation(null);
     setStatusMessage(`Starting benchmarks with ${opSize} operations per iteration...`);
     setLogs([]);
     addLog(`Starting benchmark process with operation size: ${opSize}`);
     worker.postMessage({
       type: 'start',
+      opSize
+    });
+  }
+
+  const runSingleBenchmark = (operation: string) => {
+    if (!worker) return;
+
+    console.log("Running single benchmark for operation:", operation);
+
+    setLoading(true);
+    setResults([]);
+    setCompletedTests(new Set());
+    setRunningOperation(operation); // Set the running operation
+
+    setStatusMessage(`Starting ${operation} benchmark with ${opSize} operations per iteration...`);
+    setLogs([]);
+    addLog(`Starting benchmark for operation: ${operation} with operation size: ${opSize}`);
+
+    // Pass just the operation name (not full benchmark name with library)
+    worker.postMessage({
+      type: 'runSingle',
+      benchmarkName: operation, // Just pass the operation name
       opSize
     });
   }
@@ -465,7 +509,8 @@ function App() {
             {BENCHMARK_GROUPS.map((operation) => {
               // Determine styling based on status
               const isComplete = completedTests.has(operation);
-              const isPending = loading && !completedTests.has(operation);
+              const isRunning = runningOperation === operation;
+              const isPending = loading && !isComplete && (runningOperation === null || isRunning);
 
               let bgClass = "bg-black";
               let statusIcon = <CircleDashed className="h-5 w-5 text-white/40" />;
@@ -481,7 +526,14 @@ function App() {
                 statusClass = "text-white";
                 borderClass = "border-white/20";
                 shadowEffect = "shadow-md";
-              } else if (isPending) {
+              } else if (isRunning) {
+                bgClass = "bg-black";
+                statusIcon = <Clock className="h-5 w-5 text-white/80 animate-pulse" />;
+                statusText = "Running";
+                statusClass = "text-white/80";
+                borderClass = "border-white/15";
+                shadowEffect = "shadow-sm";
+              } else if (isPending && runningOperation === null) {
                 bgClass = "bg-black";
                 statusIcon = <Clock className="h-5 w-5 text-white/80 animate-pulse" />;
                 statusText = "Pending";
@@ -495,7 +547,26 @@ function App() {
                   key={operation}
                   className={`relative rounded-xl border ${borderClass} ${bgClass} ${shadowEffect} overflow-hidden transition-all duration-300 hover:scale-[1.02]`}
                 >
-                  <div className="relative p-4 sm:p-5">
+                  {/* Play button in top right */}
+                  <button
+                    onClick={() => runSingleBenchmark(operation)}
+                    disabled={loading && runningOperation !== operation}
+                    className={`absolute top-[0.875em] right-3 z-10 p-1.5 rounded-full 
+                      ${loading && runningOperation === operation
+                        ? 'bg-white/20 border-white/50'
+                        : 'bg-black/60 hover:bg-white/20 border-white/30'} 
+                      border transition-all duration-200 
+                      shadow-md hover:shadow-lg hover:scale-110 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-opacity-50`}
+                    title="Run this benchmark"
+                  >
+                    {loading && runningOperation === operation ? (
+                      <Loader2 className="h-4 w-4 text-white animate-spin" />
+                    ) : (
+                      <Play className="h-4 w-4 text-white" />
+                    )}
+                  </button>
+
+                  <div className="relative py-4 px-4 sm:px-5">
                     <div className="flex flex-col h-full">
                       <h3 className="font-bold text-base sm:text-lg text-white mb-2">{operation}</h3>
                       <div className={`flex items-center gap-1.5 ${statusClass} text-sm font-medium mb-3`}>

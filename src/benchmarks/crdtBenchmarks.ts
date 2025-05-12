@@ -931,6 +931,41 @@ export class CRDTBenchmarks {
         return this.results;
     }
 
+    async runSingleBenchmark(
+        benchmarkName: string,
+    ): Promise<BenchmarkResult[]> {
+        this.results = [];
+        console.log(
+            `Starting benchmark for operation: ${benchmarkName} with OP_SIZE:`,
+            BENCHMARK_CONFIG.OP_SIZE,
+        );
+
+        // Find all benchmarks for this operation type
+        const benchmarkKeys = Object.keys(CODE_SNIPPETS).filter((key) => {
+            const parts = key.split(" - ");
+            return parts.length > 1 && parts[1] === benchmarkName;
+        });
+
+        console.log(
+            `Found ${benchmarkKeys.length} benchmark implementations for operation ${benchmarkName}:`,
+        );
+        benchmarkKeys.forEach((key) => console.log(` - ${key}`));
+
+        if (benchmarkKeys.length > 0) {
+            // Run all implementations for this operation type
+            console.log(
+                `Running all implementations for operation: ${benchmarkName}`,
+            );
+            await this.runBenchmarkGroup(benchmarkName, benchmarkKeys);
+        } else {
+            console.log(`No benchmarks found for operation: ${benchmarkName}`);
+        }
+
+        this.onProgress?.(this.results);
+        console.log("Benchmarks completed with results:", this.results);
+        return this.results;
+    }
+
     private groupBenchmarksByOperation(): Record<string, string[]> {
         const groups: Record<string, string[]> = {};
 
