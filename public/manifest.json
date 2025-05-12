@@ -1,0 +1,16 @@
+{
+  "name": "CRDT Library Benchmarks",
+  "short_name": "CRDT Bench",
+  "description": "Compare performance of popular CRDT libraries (Yjs, Loro, and Automerge) in your browser",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#111111"
+} 
