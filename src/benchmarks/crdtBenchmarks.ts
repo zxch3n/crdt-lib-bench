@@ -724,6 +724,152 @@ for (let i = versionEntries.length - 1; i >= 0; i--) {
             }
         },
     },
+
+    // Complex sync with large document snapshot export/import
+    "Yjs - Large Document Import": {
+        code: `
+// Create a large document with random text insertions
+const doc = new Y.Doc();
+const text = doc.getText("text");
+const randomText = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet.";
+
+// Insert random text at random positions
+for (let i = 0; i < OP_SIZE; i++) {
+    const position = Math.floor(Math.random() * Math.max(1, text.length));
+    text.insert(position, randomText);
+}
+
+// Export the entire document state as a binary snapshot
+const snapshot = Y.encodeStateAsUpdate(doc);
+
+// Import the snapshot 100 times to focus on import performance
+for (let i = 0; i < 100; i++) {
+    const newDoc = new Y.Doc();
+    Y.applyUpdate(newDoc, snapshot);
+}`,
+        fn: () => {
+            // Create a large document with random text insertions
+            const doc = new Y.Doc();
+            const text = doc.getText("text");
+            const randomText =
+                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet.";
+
+            // Insert random text at random positions
+            for (let i = 0; i < BENCHMARK_CONFIG.OP_SIZE; i++) {
+                const position = Math.floor(
+                    Math.random() * Math.max(1, text.length),
+                );
+                text.insert(position, randomText);
+            }
+
+            // Export the entire document state as a binary snapshot
+            const snapshot = Y.encodeStateAsUpdate(doc);
+
+            // Import the snapshot 100 times to focus on import performance
+            for (let i = 0; i < 100; i++) {
+                const newDoc = new Y.Doc();
+                Y.applyUpdate(newDoc, snapshot);
+            }
+        },
+    },
+
+    //     "Automerge - Large Document Import": {
+    //         code: `
+    // // Create a large document with random text insertions
+    // let doc = Automerge.init<AutomergeTextDoc>();
+    // const randomText = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet.";
+
+    // // Insert random text at random positions
+    // for (let i = 0; i < OP_SIZE; i++) {
+    //     doc = Automerge.change(doc, (d: AutomergeTextDoc) => {
+    //         if (!d.text) d.text = new Automerge.Text();
+    //         const position = Math.floor(Math.random() * Math.max(1, d.text.length));
+    //         d.text.insertAt(position, randomText);
+    //     });
+    // }
+
+    // // Export the entire document as a binary snapshot
+    // const snapshot = Automerge.save(doc);
+
+    // // Import the snapshot 100 times to focus on import performance
+    // for (let i = 0; i < 100; i++) {
+    //     const newDoc = Automerge.load<AutomergeTextDoc>(snapshot);
+    //     void newDoc; // Use void to indicate intentional non-use
+    // }`,
+    //         fn: () => {
+    //             // Create a large document with random text insertions
+    //             let doc = Automerge.init<AutomergeTextDoc>();
+    //             const randomText =
+    //                 "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet.";
+
+    //             // Insert random text at random positions
+    //             for (let i = 0; i < BENCHMARK_CONFIG.OP_SIZE; i++) {
+    //                 doc = Automerge.change(doc, (d: AutomergeTextDoc) => {
+    //                     if (!d.text) d.text = new Automerge.Text();
+    //                     const position = Math.floor(
+    //                         Math.random() * Math.max(1, d.text.length),
+    //                     );
+    //                     d.text.insertAt(position, randomText);
+    //                 });
+    //             }
+
+    //             // Export the entire document as a binary snapshot
+    //             const snapshot = Automerge.save(doc);
+
+    //             // Import the snapshot 100 times to focus on import performance
+    //             for (let i = 0; i < 100; i++) {
+    //                 const newDoc = Automerge.load<AutomergeTextDoc>(snapshot);
+    //                 void newDoc; // Use void to indicate intentional non-use
+    //             }
+    //         },
+    //     },
+
+    "Loro - Large Document Import": {
+        code: `
+// Create a large document with random text insertions
+const doc = new LoroDoc();
+const text = doc.getText("text");
+const randomText = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet.";
+
+// Insert random text at random positions
+for (let i = 0; i < OP_SIZE; i++) {
+    const position = Math.floor(Math.random() * Math.max(1, text.length));
+    text.insert(position, randomText);
+}
+
+// Export the entire document as a snapshot
+const snapshot = doc.export({ mode: "snapshot" });
+
+// Import the snapshot 100 times to focus on import performance
+for (let i = 0; i < 100; i++) {
+    const newDoc = new LoroDoc();
+    newDoc.import(snapshot);
+}`,
+        fn: () => {
+            // Create a large document with random text insertions
+            const doc = new LoroDoc();
+            const text = doc.getText("text");
+            const randomText =
+                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet.";
+
+            // Insert random text at random positions
+            for (let i = 0; i < BENCHMARK_CONFIG.OP_SIZE; i++) {
+                const position = Math.floor(
+                    Math.random() * Math.max(1, text.length),
+                );
+                text.insert(position, randomText);
+            }
+
+            // Export the entire document as a snapshot
+            const snapshot = doc.export({ mode: "snapshot" });
+
+            // Import the snapshot 100 times to focus on import performance
+            for (let i = 0; i < 100; i++) {
+                const newDoc = new LoroDoc();
+                newDoc.import(snapshot);
+            }
+        },
+    },
 };
 
 export const BENCHMARK_GROUPS = (() => {
