@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts'
-import { CheckCircle, Clock, XCircle, Loader2, RefreshCw, Code, Copy, Check, HelpCircle, Clipboard } from 'lucide-react'
+import { CheckCircle, Clock, XCircle, Loader2, RefreshCw, Code, Copy, Check, HelpCircle, Clipboard, ArrowDown } from 'lucide-react'
 import type { BenchmarkResult } from './benchmarks/simpleBench'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card'
@@ -54,13 +54,45 @@ function App() {
   const [copying, setCopying] = useState(false)
   const [copyingMarkdown, setCopyingMarkdown] = useState(false)
   const logsEndRef = useRef<HTMLDivElement>(null)
+  const [userScrolled, setUserScrolled] = useState(false)
+  const logsContainerRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll logs to bottom when new logs are added
   useEffect(() => {
-    if (logsEndRef.current) {
+    if (logsEndRef.current && !userScrolled && loading) {
       logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [logs]);
+  }, [logs, userScrolled, loading]);
+
+  // Track scroll events to detect manual scrolling
+  useEffect(() => {
+    const handleScroll = () => {
+      if (loading && logsContainerRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = logsContainerRef.current;
+        const isScrolledToBottom = scrollHeight - scrollTop - clientHeight < 10;
+
+        // If not at the bottom and we're loading, assume user manually scrolled
+        if (!isScrolledToBottom) {
+          setUserScrolled(true);
+        }
+      }
+    };
+
+    // Listen for scroll events on the container itself, not window
+    const logsContainer = logsContainerRef.current;
+    if (logsContainer) {
+      logsContainer.addEventListener('scroll', handleScroll);
+      return () => logsContainer.removeEventListener('scroll', handleScroll);
+    }
+
+    return undefined;
+  }, [loading, logsContainerRef]);
+
+  // Enable auto-scrolling and scroll to bottom
+  const enableAutoScroll = () => {
+    setUserScrolled(false);
+    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   // Add a log entry
   const addLog = (message: string) => {
@@ -147,6 +179,7 @@ function App() {
     setCompletedTests(new Set());
     setStatusMessage(`Starting benchmarks with ${opSize} operations per iteration...`);
     setLogs([]);
+    setUserScrolled(false);
     addLog(`Starting benchmark process with operation size: ${opSize}`);
     worker.postMessage({
       type: 'start',
