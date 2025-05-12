@@ -403,7 +403,7 @@ function App() {
     <div className="min-h-screen app-background py-6 sm:py-12">
       <div className="container mx-auto px-2 sm:px-4">
         <div className="text-center mb-6 sm:mb-12">
-          <h1 className="text-4xl md:text-6xl font-bold mb-3 sm:mb-4 text-white">
+          <h1 className="text-4xl md:text-6xl font-bold mb-3 sm:mb-4 text-white lg:mt-12 lg:mb-8 mt-6 mb-4">
             CRDT Libraries Benchmarks
           </h1>
           <p className="text-base sm:text-lg text-white max-w-2xl mx-auto mb-6 sm:mb-8 opacity-90">
