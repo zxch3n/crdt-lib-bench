@@ -805,7 +805,7 @@ function App() {
         </Dialog>
 
         {/* Logs container with scroll-to-bottom button */}
-        <div ref={logsContainerRef} className="mt-8 max-h-[300px] overflow-auto bg-black/30 rounded-lg p-4 border border-white/10 relative">
+        <div ref={logsContainerRef} className="mt-8 max-h-[300px] overflow-auto bg-black/30 rounded-lg p-4 border border-white/10 relative" style={{ display: logs.length > 0 ? "" : "none" }}>
           {logs.map((log, index) => (
             <div key={index} className="text-white/80 text-sm mb-1 font-mono">
               {log}
