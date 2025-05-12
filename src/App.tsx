@@ -24,14 +24,21 @@ import { Label } from '@/components/ui/label'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
-// Define the benchmark operations that will be run
-const BENCHMARK_OPERATIONS = [
-  'Text Insert',
-  'List Operations',
-  'Map Operations',
-  'Tree Operations',
-  'Sync Operations'
-]
+// Define the benchmark operations dynamically from CODE_SNIPPETS and make sure the operations are properly grouped
+const BENCHMARK_OPERATIONS = (() => {
+  // Extract all unique operation types
+  const uniqueOps = new Set<string>();
+
+  Object.keys(CODE_SNIPPETS).forEach(key => {
+    const parts = key.split(' - ');
+    if (parts.length > 1) {
+      uniqueOps.add(parts[1]);
+    }
+  });
+
+  // Return sorted array of operations
+  return Array.from(uniqueOps).sort();
+})();
 
 // Colors for different libraries
 const LIBRARY_COLORS: Record<string, string> = {
@@ -174,11 +181,11 @@ function App() {
         name: operation,
         ...operationResults.reduce((acc, curr) => {
           if (showDuration) {
-            // When showing duration, calculate ms per operation
-            const msPerOperation = (curr.executionTime / opSize);
+            // When showing duration, calculate ms per iteration
+            const msPerIteration = curr.executionTime;
             return {
               ...acc,
-              [curr.library]: Math.round(msPerOperation * 1000) / 1000 // Round to 3 decimal places
+              [curr.library]: Math.round(msPerIteration * 1000) / 1000 // Round to 3 decimal places
             };
           } else {
             return {
@@ -200,11 +207,11 @@ function App() {
       .filter(r => r.name === operation)
       .map(r => {
         if (showDuration) {
-          // Calculate ms per operation
-          const msPerOperation = (r.executionTime / opSize);
+          // Calculate ms per iteration
+          const msPerIteration = (r.executionTime / opSize);
           return {
             library: r.library,
-            value: Math.round(msPerOperation * 1000) / 1000, // Round to 3 decimal places
+            value: Math.round(msPerIteration * 1000) / 1000, // Round to 3 decimal places
             code: r.code,
             executionTime: Math.round(r.executionTime)
           };
@@ -240,7 +247,7 @@ function App() {
   // Get Y-axis label based on display mode
   const getYAxisLabel = () => {
     if (showDuration) {
-      return 'MS per operation (lower is better)';
+      return 'MS per iteration (lower is better)';
     } else {
       return 'Iterations/sec (higher is better)';
     }
@@ -249,7 +256,7 @@ function App() {
   // Get tooltip label based on display mode
   const getTooltipFormatter = (value: number | string) => {
     if (showDuration) {
-      return [`${value} ms/op`, 'MS per operation'];
+      return [`${value} ms/iter`, 'MS per iteration'];
     } else {
       return [`${value} iter/sec`, 'Iterations per Second'];
     }
@@ -427,17 +434,21 @@ function App() {
                       <div className="flex flex-wrap gap-1.5">
                         {['Yjs', 'Automerge', 'Loro'].map(lib => {
                           const codeKey = `${lib} - ${operation}` as keyof typeof CODE_SNIPPETS;
-                          return (
-                            <Badge
-                              key={lib}
-                              variant="outline"
-                              className="bg-black/40 hover:bg-black/60 hover:scale-105 transform transition-all cursor-pointer border-gray-700 hover:border-gray-500 flex items-center gap-1.5"
-                              onClick={() => CODE_SNIPPETS[codeKey] ? showCode(codeKey, CODE_SNIPPETS[codeKey]) : null}
-                            >
-                              {lib}
-                              <Code className="h-3 w-3 opacity-70" />
-                            </Badge>
-                          );
+                          // Only show libraries that have the operation
+                          if (CODE_SNIPPETS[codeKey]) {
+                            return (
+                              <Badge
+                                key={lib}
+                                variant="outline"
+                                className="bg-black/40 hover:bg-black/60 hover:scale-105 transform transition-all cursor-pointer border-gray-700 hover:border-gray-500 flex items-center gap-1.5"
+                                onClick={() => showCode(codeKey, CODE_SNIPPETS[codeKey].code)}
+                              >
+                                {lib}
+                                <Code className="h-3 w-3 opacity-70" />
+                              </Badge>
+                            );
+                          }
+                          return null;
                         })}
                       </div>
                     </div>
@@ -462,14 +473,14 @@ function App() {
                 onCheckedChange={setShowDuration}
               />
               <Label htmlFor="metric-toggle" className={`text-sm ${showDuration ? 'text-white font-medium' : 'text-gray-400'}`}>
-                MS per Operation
+                MS per Iteration
               </Label>
             </div>
 
             <Card className="card-gradient overflow-hidden p-3 sm:p-6 border-0">
               <CardHeader className="px-0 pb-2 sm:pb-6">
                 <CardTitle className="text-center text-xl sm:text-2xl text-white">
-                  {showDuration ? 'MS per Operation - All Libraries' : 'Iterations per Second - All Libraries'}
+                  {showDuration ? 'MS per Iteration - All Libraries' : 'Iterations per Second - All Libraries'}
                 </CardTitle>
                 <CardDescription className="text-center text-gray-400">
                   Each iteration performs {opSize} operations
@@ -553,7 +564,7 @@ function App() {
                         <Bar
                           dataKey="value"
                           radius={[6, 6, 0, 0]}
-                          name={showDuration ? "MS per Operation" : "Iterations per Second"}
+                          name={showDuration ? "MS per Iteration" : "Iterations per Second"}
                           fill="#333333"
                         >
                           {getLibraryData(operation).map((entry, index) => (
