@@ -303,7 +303,7 @@ function App() {
       new Date().toTimeString().split(' ')[0];
 
     // Start with header information
-    let markdown = `- OP_SIZE = ${opSize}\n`;
+    let markdown = `- OP_SIZE: ${opSize}\n`;
     markdown += `- Date: ${currentDate}\n`;
     markdown += `- Loro version: ${versions.loro}\n`;
     markdown += `- Yjs version: ${versions.yjs}\n`;
