@@ -27,7 +27,7 @@ export const BENCHMARK_CONFIG = {
 };
 
 // Code snippets for each benchmark operation
-const CODE_SNIPPETS = {
+export const CODE_SNIPPETS = {
     // Text operations
     "Yjs - Text Insert": `
 const doc = new Y.Doc();

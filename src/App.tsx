@@ -10,17 +10,19 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts'
-import { CheckCircle, Clock, XCircle, Loader2, RefreshCw, Code, X, HelpCircle } from 'lucide-react'
+import { CheckCircle, Clock, XCircle, Loader2, RefreshCw, Code, Copy, Check, HelpCircle } from 'lucide-react'
 import type { BenchmarkResult } from './benchmarks/simpleBench'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Slider } from '@/components/ui/slider'
-import { BENCHMARK_CONFIG } from './benchmarks/crdtBenchmarks'
+import { BENCHMARK_CONFIG, CODE_SNIPPETS } from './benchmarks/crdtBenchmarks'
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 // Define the benchmark operations that will be run
 const BENCHMARK_OPERATIONS = [
@@ -52,6 +54,7 @@ function App() {
   const [selectedCode, setSelectedCode] = useState<{ title: string, code: string }>({ title: '', code: '' })
   const [opSize, setOpSize] = useState<number>(BENCHMARK_CONFIG.OP_SIZE)
   const [showDuration, setShowDuration] = useState<boolean>(false)
+  const [copying, setCopying] = useState(false)
   const logsEndRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll logs to bottom when new logs are added
@@ -225,6 +228,15 @@ function App() {
     setCodeDialogOpen(true);
   };
 
+  // Copy code to clipboard
+  const copyCode = async () => {
+    if (selectedCode.code) {
+      await navigator.clipboard.writeText(selectedCode.code);
+      setCopying(true);
+      setTimeout(() => setCopying(false), 2000);
+    }
+  };
+
   // Get Y-axis label based on display mode
   const getYAxisLabel = () => {
     if (showDuration) {
@@ -242,6 +254,28 @@ function App() {
       return [`${value} iter/sec`, 'Iterations per Second'];
     }
   };
+
+  // Apply custom styling
+  useEffect(() => {
+    // Create style element for custom code styles
+    const styleEl = document.createElement('style');
+    styleEl.innerHTML = `
+      /* Custom styles for syntax highlighting */
+      .syntax-highlighter {
+        border-radius: 0.25rem !important;
+        margin: 0 !important;
+        padding-right: 4rem !important;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+        font-size: 0.9em !important;
+        background: transparent !important;
+      }
+    `;
+    document.head.appendChild(styleEl);
+
+    return () => {
+      document.head.removeChild(styleEl);
+    };
+  }, []); // Only run once on mount
 
   return (
     <div className="min-h-screen app-background py-6 sm:py-12">
@@ -386,9 +420,25 @@ function App() {
                   <div className="relative p-4 sm:p-5">
                     <div className="flex flex-col h-full">
                       <h3 className="font-bold text-base sm:text-lg text-white mb-2">{operation}</h3>
-                      <div className={`flex items-center gap-1.5 ${statusClass} text-sm font-medium`}>
+                      <div className={`flex items-center gap-1.5 ${statusClass} text-sm font-medium mb-3`}>
                         {statusIcon}
                         <span>{statusText}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {['Yjs', 'Automerge', 'Loro'].map(lib => {
+                          const codeKey = `${lib} - ${operation}` as keyof typeof CODE_SNIPPETS;
+                          return (
+                            <Badge
+                              key={lib}
+                              variant="outline"
+                              className="bg-black/40 hover:bg-black/60 hover:scale-105 transform transition-all cursor-pointer border-gray-700 hover:border-gray-500 flex items-center gap-1.5"
+                              onClick={() => CODE_SNIPPETS[codeKey] ? showCode(codeKey, CODE_SNIPPETS[codeKey]) : null}
+                            >
+                              {lib}
+                              <Code className="h-3 w-3 opacity-70" />
+                            </Badge>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -540,20 +590,42 @@ function App() {
         {/* Code Viewing Dialog */}
         <Dialog open={codeDialogOpen} onOpenChange={setCodeDialogOpen}>
           <DialogContent className="max-w-3xl bg-black border border-gray-800 text-white">
-            <DialogHeader>
-              <DialogTitle className="flex items-center justify-between">
-                <span>{selectedCode.title}</span>
-                <DialogClose asChild>
-                  <Button variant="ghost" className="h-8 w-8 p-0 rounded-full">
-                    <X className="h-4 w-4" />
-                  </Button>
-                </DialogClose>
+            <DialogHeader className="pb-3">
+              <DialogTitle className="mb-0">
+                <span className="text-lg font-medium">{selectedCode.title}</span>
               </DialogTitle>
             </DialogHeader>
-            <div className="bg-gray-900 p-4 rounded-md">
-              <pre className="font-mono text-sm overflow-x-auto">
-                <code className="text-gray-300 whitespace-pre">{selectedCode.code}</code>
-              </pre>
+            <div className="bg-gray-900 p-4 rounded-md overflow-hidden relative">
+              <Button
+                variant="outline"
+                size="sm"
+                className="absolute top-3 right-3 h-7 px-2 rounded-md hover:bg-gray-800 border-gray-700 flex items-center gap-1.5 bg-gray-900/90 backdrop-blur-sm z-10 shadow-md opacity-70 hover:opacity-100 transition-opacity"
+                onClick={copyCode}
+              >
+                {copying ? (
+                  <>
+                    <Check className="h-3 w-3 text-green-500" />
+                    <span className="text-xs">Copied</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3 w-3" />
+                    <span className="text-xs">Copy</span>
+                  </>
+                )}
+              </Button>
+              <div className="overflow-x-auto max-h-[70vh]">
+                <SyntaxHighlighter
+                  language="typescript"
+                  style={vscDarkPlus}
+                  customStyle={{ background: 'transparent' }}
+                  className="syntax-highlighter"
+                  showLineNumbers={false}
+                  wrapLongLines={false}
+                >
+                  {selectedCode.code}
+                </SyntaxHighlighter>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
