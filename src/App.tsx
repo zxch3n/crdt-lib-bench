@@ -377,7 +377,7 @@ function App() {
         </div>
 
         {/* Status Message */}
-        {statusMessage && (
+        {/* {statusMessage && (
           <div className="mb-8 text-center">
             <Badge
               variant="outline"
@@ -386,7 +386,7 @@ function App() {
               {statusMessage}
             </Badge>
           </div>
-        )}
+        )} */}
 
         {/* Test Status Indicators */}
         <div className="mb-6 sm:mb-8">
