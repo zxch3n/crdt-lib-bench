@@ -52,6 +52,7 @@ const OP_SIZE_OPTIONS = [32, 128, 512, 2048, 16384, 65536];
 
 function App() {
   const [results, setResults] = useState<BenchmarkResult[]>([])
+  console.log({ results })
   const [loading, setLoading] = useState(false)
   const [worker, setWorker] = useState<Worker | null>(null)
   const [completedTests, setCompletedTests] = useState<Set<string>>(new Set())
@@ -190,7 +191,7 @@ function App() {
           } else {
             return {
               ...acc,
-              [curr.library]: Math.round(curr.opsPerSecond)
+              [curr.library]: Math.round(curr.iterPerSecond)
             };
           }
         }, {})
@@ -208,7 +209,7 @@ function App() {
       .map(r => {
         if (showDuration) {
           // Calculate ms per iteration
-          const msPerIteration = (r.executionTime / opSize);
+          const msPerIteration = r.executionTime / r.iteration;
           return {
             library: r.library,
             value: Math.round(msPerIteration * 1000) / 1000, // Round to 3 decimal places
@@ -218,7 +219,7 @@ function App() {
         } else {
           return {
             library: r.library,
-            value: Math.round(r.opsPerSecond),
+            value: Math.round(r.iterPerSecond),
             code: r.code,
             executionTime: Math.round(r.executionTime)
           };

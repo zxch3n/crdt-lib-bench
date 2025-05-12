@@ -11,7 +11,8 @@ export interface BenchmarkTask {
 export interface BenchmarkResult {
     name: string;
     library: string;
-    opsPerSecond: number;
+    iteration: number;
+    iterPerSecond: number;
     error: number;
     samples: number[];
     code: string; // Store the code for display
@@ -66,7 +67,6 @@ export class SimpleBench {
 
         // Run for a set time or number of iterations, whichever comes first
         const endTime = startTime + this.timeoutMs;
-        let totalOps = 0;
         let iteration = 0;
 
         while (performance.now() < endTime && iteration < this.iterations) {
@@ -75,14 +75,13 @@ export class SimpleBench {
             const iterationTime = performance.now() - iterationStart;
 
             samples.push(iterationTime);
-            totalOps++;
             iteration++;
         }
 
         const totalTime = performance.now() - startTime;
 
         // Calculate operations per second
-        const opsPerSecond = (totalOps / totalTime) * 1000;
+        const iterPerSecond = (iteration / totalTime) * 1000;
 
         // Calculate error margin (simplified)
         const mean = samples.reduce((sum, val) => sum + val, 0) /
@@ -101,7 +100,8 @@ export class SimpleBench {
         const result: BenchmarkResult = {
             name: operation,
             library,
-            opsPerSecond,
+            iteration,
+            iterPerSecond,
             error: relativeError,
             samples,
             code: task.code,
@@ -109,7 +109,7 @@ export class SimpleBench {
         };
 
         console.log(
-            `Benchmark ${task.name}: ${Math.round(opsPerSecond)} ops/sec (±${
+            `Benchmark ${task.name}: ${Math.round(iterPerSecond)} ops/sec (±${
                 relativeError.toFixed(2)
             }%)`,
         );
