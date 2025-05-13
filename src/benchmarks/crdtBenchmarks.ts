@@ -651,7 +651,7 @@ for (let i = 0; i < 128; i++) {
 }
 
 const results = [];
-for (let i = versionEntries.length - 1; i >= 0; i--) {
+for (let i = versionEntries.length - 1; i >= 0; i -= 10) {
     doc.checkout(versionEntries[i]);
     results.push(text.toString());
 }
@@ -672,7 +672,7 @@ for (let i = versionEntries.length - 1; i >= 0; i--) {
             }
 
             const results = [];
-            for (let i = versionEntries.length - 1; i >= 0; i--) {
+            for (let i = versionEntries.length - 1; i >= 0; i -= 10) {
                 doc.checkout(versionEntries[i]);
                 results.push(text.toString());
             }
@@ -696,7 +696,7 @@ for (let i = 0; i < 128; i++) {
 }
 
 const results = [];
-for (let i = versionEntries.length - 1; i >= 0; i--) {
+for (let i = versionEntries.length - 1; i >= 0; i -= 10) {
     doc = Automerge.clone(Automerge.view(doc, versionEntries[i]));
     results.push(doc.text?.toString());
 }`,
@@ -718,7 +718,7 @@ for (let i = versionEntries.length - 1; i >= 0; i--) {
             }
 
             const results = [];
-            for (let i = versionEntries.length - 1; i >= 0; i--) {
+            for (let i = versionEntries.length - 1; i >= 0; i -= 10) {
                 doc = Automerge.clone(Automerge.view(doc, versionEntries[i]));
                 results.push(doc.text?.toString());
             }
