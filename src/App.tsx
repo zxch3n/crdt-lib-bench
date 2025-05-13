@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts'
-import { CheckCircle, Clock, CircleDashed, Loader2, RefreshCw, Code, Copy, Check, HelpCircle, Clipboard, Play } from 'lucide-react'
+import { CheckCircle, Clock, CircleDashed, Loader2, RefreshCw, Code, Copy, Check, HelpCircle, Clipboard, Play, Github } from 'lucide-react'
 import type { BenchmarkResult } from './benchmarks/simpleBench'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card'
@@ -406,6 +406,7 @@ function App() {
           <h1 className="text-4xl md:text-6xl font-bold mb-3 sm:mb-4 text-white lg:mt-12 lg:mb-8 mt-6 mb-4">
             CRDTs Libraries Benchmarks
           </h1>
+
           <p className="text-base sm:text-lg text-white max-w-2xl mx-auto mb-6 sm:mb-8 opacity-90">
             Compare performance between Yjs, Automerge, and Loro CRDT implementations
           </p>
@@ -488,6 +489,18 @@ function App() {
               </>
             )}
           </Button>
+
+          <div className="mt-4 flex justify-center">
+            <a
+              href="https://github.com/zxch3n/crdt-lib-bench"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-transparent hover:bg-black/30 text-white/70 hover:text-white rounded-md border border-white/10 transition-colors duration-200"
+            >
+              <Github className="h-4 w-4" />
+              <span>Contribute on GitHub</span>
+            </a>
+          </div>
         </div>
 
         {/* Status Message - Display only when needed */}
