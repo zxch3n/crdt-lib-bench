@@ -1,7 +1,7 @@
 {
-  "name": "CRDT Library Benchmarks",
-  "short_name": "CRDT Bench",
-  "description": "Compare performance of popular CRDT libraries (Yjs, Loro, and Automerge) in your browser",
+  "name": "CRDTs Libraries Benchmarks",
+  "short_name": "CRDTs Bench",
+  "description": "Compare performance of popular CRDTs libraries (Yjs, Loro, and Automerge) in your browser",
   "icons": [
     {
       "src": "/icon.svg",

@@ -1,7 +1,7 @@
-# CRDT Library Benchmarks
+# CRDTs Library Benchmarks
 
 An interactive browser-based benchmarking tool to compare the performance of
-popular CRDT (Conflict-free Replicated Data Type) libraries:
+popular CRDTs (Conflict-free Replicated Data Types) libraries:
 
 - [Yjs](https://github.com/yjs/yjs)
 - [Automerge](https://github.com/automerge/automerge)
@@ -11,12 +11,12 @@ popular CRDT (Conflict-free Replicated Data Type) libraries:
 
 ## Try It On Your Browser
 
-Visit [crdt-benchmarks.example.com](https://crdt-benchmarks.example.com) to run
-the benchmarks directly in your browser.
+Visit [crdt-lib-bench.vercel.app](https://crdt-lib-bench.vercel.app/) to run the
+benchmarks directly in your browser.
 
 ## Features
 
-- Run comprehensive benchmarks comparing CRDT library performance
+- Run comprehensive benchmarks comparing CRDTs libraries performance
 - Interactive UI with real-time results visualization
 - Customizable operation size to test different workloads
 - View and compare code implementations for each operation

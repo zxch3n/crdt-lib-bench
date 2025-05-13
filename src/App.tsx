@@ -404,7 +404,7 @@ function App() {
       <div className="container mx-auto px-2 sm:px-4">
         <div className="text-center mb-6 sm:mb-12">
           <h1 className="text-4xl md:text-6xl font-bold mb-3 sm:mb-4 text-white lg:mt-12 lg:mb-8 mt-6 mb-4">
-            CRDT Libraries Benchmarks
+            CRDTs Libraries Benchmarks
           </h1>
           <p className="text-base sm:text-lg text-white max-w-2xl mx-auto mb-6 sm:mb-8 opacity-90">
             Compare performance between Yjs, Automerge, and Loro CRDT implementations
@@ -424,7 +424,7 @@ function App() {
                     </TooltipTrigger>
                     <TooltipContent side="right" className="max-w-xs p-2 bg-black text-white border border-white/20">
                       <p>
-                        Controls how many operations each CRDT library performs in a single benchmark iteration.
+                        Controls how many operations each CRDTs library performs in a single benchmark iteration.
                         Higher values will test performance with larger data structures.
                       </p>
                     </TooltipContent>

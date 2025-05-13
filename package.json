@@ -1,6 +1,6 @@
 {
   "name": "crdt-lib-bench",
-  "description": "Browser-based benchmarking tool to compare performance of popular CRDT libraries (Yjs, Loro, and Automerge)",
+  "description": "Browser-based benchmarking tool to compare performance of popular CRDTs libraries (Yjs, Loro, and Automerge)",
   "private": true,
   "version": "1.0.0",
   "type": "module",
